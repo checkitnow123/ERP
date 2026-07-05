@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CheckItNow ERP (International Demo)</title>
+    <link rel="icon" href="logo.png" type="image/png" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -150,12 +151,17 @@
       const HEADER_CURRENCIES = ["EUR", "GBP", "USD", "CHF", "PLN", "SEK", "NOK", "DKK", "OTHER"];
 
       function intlAsset(file) {
+        const p = (location.pathname || "").replace(/\\/g, "/").toLowerCase();
         const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:";
-        if (!isLocal) return "/DEMO_INTL/" + file;
-        const p = (location.pathname || "").replace(/\\/g, "/");
-        if (p.includes("/DEMO_INTL/")) return file;
-        return "DEMO_INTL/" + file;
+        const onIntlRoute = p.includes("/demo-intl") || p.includes("/demo_intl");
+        if (isLocal) {
+          if (location.protocol === "file:" || p.includes("/demo_intl/")) return file;
+          return onIntlRoute ? "DEMO_INTL/" + file : file;
+        }
+        return onIntlRoute ? "/DEMO_INTL/" + file : "/" + file;
       }
+
+      const INTL_LOGO_FALLBACKS = ["logo.png", "/logo.png", "/DEMO_INTL/logo.png", "DEMO_INTL/logo.png"];
 
       const INTL_BRAND = {
         logo: intlAsset("logo.png"),
@@ -5549,17 +5555,18 @@
             <aside className={(sidebarCollapsed ? "w-16" : "w-52") + " shrink-0 bg-slate-900 text-slate-100 py-3 transition-all duration-300 ease-in-out overflow-hidden flex flex-col min-h-screen " + (sidebarCollapsed ? "px-2" : "px-3")}>
               <div className={"mb-3 shrink-0 " + (sidebarCollapsed ? "flex flex-col items-center" : "px-0.5")}>
                 <div className={"flex items-center gap-2.5 min-h-[2.5rem] w-full " + (sidebarCollapsed ? "justify-center" : "")}>
-                  <div className={sidebarCollapsed ? "w-10 rounded-md bg-white px-1 py-0.5 flex items-center justify-center overflow-hidden shrink-0" : "flex-1 min-w-0 rounded-md bg-white px-2 py-1 flex items-center overflow-hidden"}>
+                  <div className={sidebarCollapsed ? "w-full flex items-center justify-center shrink-0 py-0.5" : "flex-1 min-w-0 flex items-center overflow-hidden py-0.5"}>
                     {sidebarLogo ? (
                       <img
                         src={sidebarLogo}
                         alt="CheckItNow"
-                        className={sidebarCollapsed ? "max-h-8 max-w-full object-contain" : "h-8 w-full object-contain object-left"}
+                        className={sidebarCollapsed ? "max-h-10 max-w-[2.75rem] object-contain" : "h-10 w-full max-h-11 object-contain object-left"}
                         onError={(e) => {
                           const el = e.currentTarget;
-                          if (el.dataset.fallback === "1") return;
-                          el.dataset.fallback = "1";
-                          el.src = "/DEMO_INTL/logo.png";
+                          const step = Number(el.dataset.fallback || "0");
+                          if (step >= INTL_LOGO_FALLBACKS.length) return;
+                          el.dataset.fallback = String(step + 1);
+                          el.src = INTL_LOGO_FALLBACKS[step];
                         }}
                       />
                     ) : (

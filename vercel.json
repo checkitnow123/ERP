@@ -4,6 +4,8 @@
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/demo", "destination": "/DEMO/index.html" },
     { "source": "/demo/", "destination": "/DEMO/index.html" },
+    { "source": "/demo-intl", "destination": "/DEMO_INTL/index.html" },
+    { "source": "/demo-intl/", "destination": "/DEMO_INTL/index.html" },
     { "source": "/", "destination": "/AIRLINK/index.html" },
     { "source": "/ui", "destination": "/AIRLINK/index.html" }
   ]
