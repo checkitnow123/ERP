@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ERP System (International Demo)</title>
+    <title>CheckItNow ERP (International Demo)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -148,6 +148,38 @@
       const ERP_INTL_EU = true;
       const ERP_DEFAULT_REGION = "UK";
       const HEADER_CURRENCIES = ["EUR", "GBP", "USD", "CHF", "PLN", "SEK", "NOK", "DKK", "OTHER"];
+
+      function intlAsset(file) {
+        const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:";
+        if (!isLocal) return "/DEMO_INTL/" + file;
+        const p = (location.pathname || "").replace(/\\/g, "/");
+        if (p.includes("/DEMO_INTL/")) return file;
+        return "DEMO_INTL/" + file;
+      }
+
+      const INTL_BRAND = {
+        logo: intlAsset("logo.png"),
+        name: "CheckItNow"
+      };
+
+      const ERP_DEMO_SEED_VERSION = "intl-eu-west-2";
+      const ERP_DEMO_SEED_KEYS = [
+        "erp_clients", "erp_jobs", "erp_quotations", "erp_vendors", "erp_sis", "erp_ar", "erp_ap",
+        "erp_users", "erp_audit_logs", "erp_monthly_po_lines", "erp_monthly_ar_lines", "erp_monthly_ar_expected",
+        "erp_monthly_po_saved_at", "erp_monthly_ar_saved_at"
+      ];
+
+      function ensureIntlDemoSeed() {
+        if (!ERP_INTL_EU || !ERP_DEV_MODE) return;
+        if (localStorage.getItem("erp_demo_seed_version") === ERP_DEMO_SEED_VERSION) return;
+        ERP_DEMO_SEED_KEYS.forEach((k) => localStorage.removeItem(k));
+        localStorage.setItem("erp_demo_seed_version", ERP_DEMO_SEED_VERSION);
+        localStorage.setItem("erp_lang", "en");
+        localStorage.setItem("erp_active_region", ERP_DEFAULT_REGION);
+        localStorage.setItem("erp_world_timezone", "Europe/London");
+      }
+
+      ensureIntlDemoSeed();
 
       const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
       const ERP_MODULES = ["dashboard", "management_report", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "ar", "ap", "vendors", "si", "settings"];
@@ -496,7 +528,7 @@
 
       const I18N = {
         en: {
-          appTitle: "ERP System (International)", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_management_report: "Management Report", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
+          appTitle: "CheckItNow ERP", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_management_report: "Management Report", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
           baseCurrency: "Base Currency", hintClickRow: "Click a row or use View/Edit to manage records", newTransaction: "+ New Transaction",
           view: "View", edit: "Edit", save: "Save", cancel: "Cancel", all: "All", groupByClient: "Group by Client", groupByVendor: "Group by Vendor", displayMode: "Display", listView: "Flat list (all)", groupHint: "Filter Client shows only that client. Grouped view adds section headers while keeping all visible.", jobStatus: "Job Status",
           filterClient: "Filter Client", filterJob: "Filter Job", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
@@ -683,7 +715,8 @@
           liveSyncLast: "Last sync", liveSyncNeedKey: "Enter cloud sync key first.", liveSyncBootstrapped: "Live sync enabled. Data connected to cloud.",
           liveSyncAutoHint: "Sync starts automatically when you open the app. View-only users download only; editors upload changes.",
           loginUsername: "Username", loginPassword: "Password", loginRemember: "Remember me", loginBtn: "Login", loginFail: "Invalid username or password.", loginInactive: "This account is disabled.", logout: "Logout",
-          noDatabaseNote: "No server database yet — Excel Import updates browser storage only. After upload, click Confirm Import in the preview dialog."
+          noDatabaseNote: "Demo only — all companies, contacts and amounts are fictional sample data. Excel import updates browser storage only. After upload, click Confirm Import in the preview dialog.",
+          demoDataDisclaimer: "Fictional sample data only. Names and figures are for demonstration and do not represent real businesses or transactions.",
         },
         zh_TW: {
           appTitle: "ERP 系統（開發）", companyLogoSlot: "公司標誌", companyNameSlot: "公司名稱", nav_dashboard: "儀表板", nav_management_report: "管理層報表", nav_overview: "總覽", nav_clients: "客戶", nav_quotation: "報價單", nav_job: "工作清單", nav_ongoing: "進行中清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_monthly_report: "月報表", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
@@ -2189,52 +2222,68 @@
       }
 
       const initialClients = [
-        { id: 1, region: "UK", customer_no: "CUST-0001", company: "Thames Engineering Ltd", gst_no: "GB-VAT-1102", primary_contact: "James Wright", company_phone: "+44-20-7946-0958", mobile_phone: "+44-7700-900123", email: "ar@thames-eng.co.uk", address: "25 Canada Square, Canary Wharf, London", postal_code: "E14 5LQ", account_dept_contact: "Emma Clarke", payment_terms: "30 Days" },
-        { id: 2, region: "DE", customer_no: "CUST-0002", company: "Rhein Logistik GmbH", gst_no: "DE-VAT-2208", primary_contact: "Hans Mueller", company_phone: "+49-69-1234-5678", mobile_phone: "+49-170-1234567", email: "finance@rhein-logistik.de", address: "Mainzer Landstraße 50, Frankfurt", postal_code: "60325", account_dept_contact: "Anna Schmidt", payment_terms: "45 Days" },
-        { id: 3, region: "FR", customer_no: "CUST-0003", company: "Lyon Industrie SAS", gst_no: "FR-VAT-88321", primary_contact: "Pierre Dubois", company_phone: "+33-4-72-00-1122", mobile_phone: "+33-6-12-34-56-78", email: "ap@lyon-industrie.fr", address: "15 Rue de la République, Lyon", postal_code: "69002", account_dept_contact: "Marie Laurent", payment_terms: "30 Days" }
+        { id: 1, region: "UK", customer_no: "DEMO-C-0001", company: "Northbridge Sample Manufacturing Ltd", gst_no: "GB-DEMO-10001", primary_contact: "Oliver Brooks", company_phone: "+44-20-7946-0001", mobile_phone: "+44-7700-900001", email: "accounts@demo-northbridge.example", address: "100 Sample Wharf, Demo District, London", postal_code: "E14 5XX", account_dept_contact: "Emma Clarke", payment_terms: "30 Days" },
+        { id: 2, region: "DE", customer_no: "DEMO-C-0002", company: "Alpenfeld Demo Logistics GmbH", gst_no: "DE-DEMO-20002", primary_contact: "Charlotte Meyer", company_phone: "+49-69-1234-0002", mobile_phone: "+49-170-1234002", email: "finance@demo-alpenfeld.example", address: "12 Musterstraße, Frankfurt", postal_code: "60325", account_dept_contact: "Lukas Braun", payment_terms: "45 Days" },
+        { id: 3, region: "FR", customer_no: "DEMO-C-0003", company: "Riviera Sample Industries SAS", gst_no: "FR-DEMO-30003", primary_contact: "Sophie Laurent", company_phone: "+33-4-72-00-0003", mobile_phone: "+33-6-12-34-0003", email: "ap@demo-riviera.example", address: "8 Rue du Démo, Lyon", postal_code: "69002", account_dept_contact: "Julien Moreau", payment_terms: "30 Days" },
+        { id: 4, region: "NL", customer_no: "DEMO-C-0004", company: "Harborline Demo Trading BV", gst_no: "NL-DEMO-40004", primary_contact: "Anna van Dijk", company_phone: "+31-10-200-0004", mobile_phone: "+31-6-1234-0004", email: "billing@demo-harborline.example", address: "Demo Haven 4, Rotterdam", postal_code: "3011 AA", account_dept_contact: "Pieter Jansen", payment_terms: "30 Days" },
+        { id: 5, region: "US", customer_no: "DEMO-C-0005", company: "Summit Ridge Demo Corp", gst_no: "US-DEMO-50005", primary_contact: "Michael Carter", company_phone: "+1-212-555-0005", mobile_phone: "+1-917-555-0005", email: "ar@demo-summitridge.example", address: "500 Sample Avenue, New York, NY", postal_code: "10001", account_dept_contact: "Sarah Mitchell", payment_terms: "Net 30" },
+        { id: 6, region: "CH", customer_no: "DEMO-C-0006", company: "Alpine Crest Demo AG", gst_no: "CH-DEMO-60006", primary_contact: "Helena Weiss", company_phone: "+41-44-200-0006", mobile_phone: "+41-79-200-0006", email: "finance@demo-alpinecrest.example", address: "Demo Platz 6, Zürich", postal_code: "8001", account_dept_contact: "Marco Steiner", payment_terms: "30 Days" }
       ];
 
       const initialJobs = [
-        { id: 1, region: "UK", job_no: "JB-001", client_id: 1, company: "Thames Engineering Ltd", job_type: "Project", customer_po: "PO-7781", customer_po_amount: 120000, quotation_no: "QT-2026-001", amount: 120000, currency: "GBP", status: "In Progress", description: "ERP rollout phase 1", remarks: "", start_date: "2026-04-01" },
-        { id: 2, region: "DE", job_no: "JB-002", client_id: 2, company: "Rhein Logistik GmbH", job_type: "Service", customer_po: "PO-8801", customer_po_amount: 95000, quotation_no: "QT-2026-002", amount: 95000, currency: "EUR", status: "Completed", description: "Annual maintenance", remarks: "", start_date: "2026-05-15" },
-        { id: 3, region: "FR", job_no: "JB-003", client_id: 3, company: "Lyon Industrie SAS", job_type: "Project", customer_po: "PO-FR-100", customer_po_amount: 68000, quotation_no: "QT-2026-003", amount: 68000, currency: "EUR", status: "Open", description: "Warehouse automation", remarks: "", start_date: "2026-06-01" }
+        { id: 1, region: "UK", job_no: "JB-DEMO-001", client_id: 1, company: "Northbridge Sample Manufacturing Ltd", job_type: "Project", customer_po: "PO-DEMO-7781", customer_po_amount: 118500, quotation_no: "QT-DEMO-2026-001", amount: 118500, currency: "GBP", status: "In Progress", description: "ERP rollout phase 1 (sample project)", remarks: "Fictional demo data", start_date: "2026-04-01", ongoing_billed_amt: 18500 },
+        { id: 2, region: "DE", job_no: "JB-DEMO-002", client_id: 2, company: "Alpenfeld Demo Logistics GmbH", job_type: "Service", customer_po: "PO-DEMO-8801", customer_po_amount: 94200, quotation_no: "QT-DEMO-2026-002", amount: 94200, currency: "EUR", status: "Completed", description: "Annual maintenance contract (sample)", remarks: "", start_date: "2026-05-15", ongoing_billed_amt: 94200 },
+        { id: 3, region: "FR", job_no: "JB-DEMO-003", client_id: 3, company: "Riviera Sample Industries SAS", job_type: "Project", customer_po: "PO-DEMO-FR-100", customer_po_amount: 67500, quotation_no: "QT-DEMO-2026-003", amount: 67500, currency: "EUR", status: "Open", description: "Warehouse automation pilot (sample)", remarks: "", start_date: "2026-06-01", ongoing_billed_amt: 0 },
+        { id: 4, region: "NL", job_no: "JB-DEMO-004", client_id: 4, company: "Harborline Demo Trading BV", job_type: "Trading(Sell)", customer_po: "PO-DEMO-NL-220", customer_po_amount: 52000, quotation_no: "QT-DEMO-2026-004", amount: 52000, currency: "EUR", status: "In Progress", description: "Equipment resale bundle (sample)", remarks: "", start_date: "2026-05-20", ongoing_billed_amt: 26000 },
+        { id: 5, region: "US", job_no: "JB-DEMO-005", client_id: 5, company: "Summit Ridge Demo Corp", job_type: "Maintenance", customer_po: "PO-DEMO-US-501", customer_po_amount: 86000, quotation_no: "QT-DEMO-2026-005", amount: 86000, currency: "USD", status: "In Progress", description: "Field service support (sample)", remarks: "", start_date: "2026-03-10", ongoing_billed_amt: 43000 },
+        { id: 6, region: "CH", job_no: "JB-DEMO-006", client_id: 6, company: "Alpine Crest Demo AG", job_type: "Project", customer_po: "PO-DEMO-CH-601", customer_po_amount: 154000, quotation_no: "QT-DEMO-2026-006", amount: 154000, currency: "CHF", status: "Open", description: "Compliance module rollout (sample)", remarks: "", start_date: "2026-06-15", ongoing_billed_amt: 0 }
       ];
 
       const initialQuotations = [
-        { id: 1, region: "UK", quotation_no: "QT-2026-001", client_id: 1, company: "Thames Engineering Ltd", quotation_date: "2026-03-01", valid_until: "2026-03-31", amount: 120000, currency: "GBP", status: "Accepted", description: "ERP rollout phase 1", job_no: "JB-001", job_id: 1 },
-        { id: 2, region: "DE", quotation_no: "QT-2026-002", client_id: 2, company: "Rhein Logistik GmbH", quotation_date: "2026-04-20", valid_until: "2026-05-20", amount: 95000, currency: "EUR", status: "Accepted", description: "Annual maintenance contract", job_no: "JB-002", job_id: 2 },
-        { id: 3, region: "FR", quotation_no: "QT-2026-004", client_id: 3, company: "Lyon Industrie SAS", quotation_date: "2026-06-15", valid_until: "2026-07-15", amount: 42000, currency: "EUR", status: "Sent", description: "Optional modules", job_no: "", job_id: null }
+        { id: 1, region: "UK", quotation_no: "QT-DEMO-2026-001", client_id: 1, company: "Northbridge Sample Manufacturing Ltd", quotation_date: "2026-03-01", valid_until: "2026-03-31", amount: 118500, currency: "GBP", status: "Accepted", description: "ERP rollout phase 1 (sample)", job_no: "JB-DEMO-001", job_id: 1 },
+        { id: 2, region: "DE", quotation_no: "QT-DEMO-2026-002", client_id: 2, company: "Alpenfeld Demo Logistics GmbH", quotation_date: "2026-04-20", valid_until: "2026-05-20", amount: 94200, currency: "EUR", status: "Accepted", description: "Annual maintenance (sample)", job_no: "JB-DEMO-002", job_id: 2 },
+        { id: 3, region: "FR", quotation_no: "QT-DEMO-2026-003", client_id: 3, company: "Riviera Sample Industries SAS", quotation_date: "2026-05-25", valid_until: "2026-06-25", amount: 67500, currency: "EUR", status: "Accepted", description: "Warehouse automation (sample)", job_no: "JB-DEMO-003", job_id: 3 },
+        { id: 4, region: "NL", quotation_no: "QT-DEMO-2026-004", client_id: 4, company: "Harborline Demo Trading BV", quotation_date: "2026-05-01", valid_until: "2026-05-31", amount: 52000, currency: "EUR", status: "Accepted", description: "Equipment bundle (sample)", job_no: "JB-DEMO-004", job_id: 4 },
+        { id: 5, region: "US", quotation_no: "QT-DEMO-2026-005", client_id: 5, company: "Summit Ridge Demo Corp", quotation_date: "2026-02-15", valid_until: "2026-03-15", amount: 86000, currency: "USD", status: "Accepted", description: "Field service (sample)", job_no: "JB-DEMO-005", job_id: 5 },
+        { id: 6, region: "CH", quotation_no: "QT-DEMO-2026-006", client_id: 6, company: "Alpine Crest Demo AG", quotation_date: "2026-06-01", valid_until: "2026-07-01", amount: 154000, currency: "CHF", status: "Sent", description: "Compliance modules (sample)", job_no: "", job_id: null }
       ];
 
       const initialVendors = [
-        { id: 1, region: "UK", vendor_no: "VEND-0001", name: "Delta Components Ltd", email: "ap@delta-components.co.uk", bank: "Barclays", swift_code: "BARCGB22", charge: "OUR", contact: "Tom Lee", phone: "+44-20-7111-0000", address: "Unit 8, Park Royal, London" },
-        { id: 2, region: "DE", vendor_no: "VEND-0002", name: "Bright Media GmbH", email: "billing@bright-media.de", bank: "Deutsche Bank", swift_code: "DEUTDEFF", charge: "OUR", contact: "Sarah Weber", phone: "+49-30-2888-0000", address: "Friedrichstraße 15, Berlin" }
+        { id: 1, region: "UK", vendor_no: "DEMO-V-0001", name: "Sterling Demo Supplies Ltd", email: "ap@demo-sterling.example", bank: "Demo Bank UK", swift_code: "DEMOGB2L", charge: "OUR", contact: "James Porter", phone: "+44-20-7111-0001", address: "Unit 8, Sample Park, London" },
+        { id: 2, region: "DE", vendor_no: "DEMO-V-0002", name: "Nordlicht Demo Media GmbH", email: "billing@demo-nordlicht.example", bank: "Demo Bank DE", swift_code: "DEMODEFF", charge: "OUR", contact: "Elena Fischer", phone: "+49-30-2888-0002", address: "Demo Straße 15, Berlin" },
+        { id: 3, region: "US", vendor_no: "DEMO-V-0003", name: "Lakeview Demo Parts Inc", email: "invoices@demo-lakeview.example", bank: "Demo Bank US", swift_code: "DEMOUS33", charge: "OUR", contact: "Robert Hayes", phone: "+1-312-555-0003", address: "200 Sample Blvd, Chicago, IL" }
       ];
 
       const initialSis = [
-        { id: 1, region: "NL", si_no: "SI-0001", name: "Ace Install BV", email: "invoice@ace-install.nl", bank: "ING", swift_code: "INGBNL2A", charge: "OUR", contact: "Mr. de Vries", phone: "+31-20-3000-1122", address: "Industrieweg 3, Rotterdam" }
+        { id: 1, region: "NL", si_no: "DEMO-SI-0001", name: "Canal Demo Install BV", email: "invoice@demo-canalinstall.example", bank: "Demo Bank NL", swift_code: "DEMONL2A", charge: "OUR", contact: "Willem de Boer", phone: "+31-20-3000-0001", address: "Demo Industrieweg 3, Rotterdam" },
+        { id: 2, region: "FR", si_no: "DEMO-SI-0002", name: "Loire Demo Services SARL", email: "billing@demo-loire.example", bank: "Demo Bank FR", swift_code: "DEMOFRPP", charge: "OUR", contact: "Camille Bernard", phone: "+33-2-40-00-0002", address: "12 Avenue Démo, Nantes" }
       ];
 
       const initialAr = [
-        { id: 1, region: "UK", job_id: 1, job_no: "JB-001", customer: "Thames Engineering Ltd", customer_po: "PO-7781", job_completed: false, invoice_no: "INV-2026-1192", invoice_currency: "GBP", invoice_amt: 18500, exchange_rate_locked: 1, base_amount_locked: 18500, base_amount: 18500, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-05-01", due_date: "2026-06-05", payment_received_date: "", payment_status: "Overdue" },
-        { id: 2, region: "DE", job_id: 2, job_no: "JB-002", customer: "Rhein Logistik GmbH", customer_po: "PO-8801", job_completed: true, invoice_no: "INV-2026-1204", invoice_currency: "EUR", invoice_amt: 22800, exchange_rate_locked: 1, base_amount_locked: 22800, base_amount: 22800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-06-01", due_date: "2026-06-20", payment_received_date: "", payment_status: "Awaiting Payment" }
+        { id: 1, region: "UK", job_id: 1, job_no: "JB-DEMO-001", customer: "Northbridge Sample Manufacturing Ltd", customer_po: "PO-DEMO-7781", job_completed: false, invoice_no: "INV-DEMO-2026-1192", invoice_currency: "GBP", invoice_amt: 18500, exchange_rate_locked: 1, base_amount_locked: 18500, base_amount: 18500, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-05-01", due_date: "2026-06-05", payment_received_date: "", payment_status: "Overdue" },
+        { id: 2, region: "DE", job_id: 2, job_no: "JB-DEMO-002", customer: "Alpenfeld Demo Logistics GmbH", customer_po: "PO-DEMO-8801", job_completed: true, invoice_no: "INV-DEMO-2026-1204", invoice_currency: "EUR", invoice_amt: 22800, exchange_rate_locked: 1, base_amount_locked: 22800, base_amount: 22800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-06-01", due_date: "2026-06-20", payment_received_date: "", payment_status: "Awaiting Payment" },
+        { id: 3, region: "NL", job_id: 4, job_no: "JB-DEMO-004", customer: "Harborline Demo Trading BV", customer_po: "PO-DEMO-NL-220", job_completed: false, invoice_no: "INV-DEMO-2026-1210", invoice_currency: "EUR", invoice_amt: 26000, exchange_rate_locked: 1, base_amount_locked: 26000, base_amount: 26000, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-06-08", due_date: "2026-07-08", payment_received_date: "", payment_status: "Awaiting Payment" },
+        { id: 4, region: "US", job_id: 5, job_no: "JB-DEMO-005", customer: "Summit Ridge Demo Corp", customer_po: "PO-DEMO-US-501", job_completed: false, invoice_no: "INV-DEMO-2026-1215", invoice_currency: "USD", invoice_amt: 43000, exchange_rate_locked: 1, base_amount_locked: 43000, base_amount: 43000, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-05-20", due_date: "2026-06-19", payment_received_date: "2026-06-18", payment_status: "Paid" },
+        { id: 5, region: "FR", job_id: 3, job_no: "JB-DEMO-003", customer: "Riviera Sample Industries SAS", customer_po: "PO-DEMO-FR-100", job_completed: false, invoice_no: "INV-DEMO-2026-1220", invoice_currency: "EUR", invoice_amt: 12000, exchange_rate_locked: 1, base_amount_locked: 12000, base_amount: 12000, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-06-12", due_date: "2026-07-12", payment_received_date: "", payment_status: "Awaiting Payment" }
       ];
 
       const initialAp = [
-        { id: 1, region: "UK", job_id: 1, job_no: "JB-001", payee_type: "Vendor", si_id: null, company_name: "Delta Components Ltd", invoice_no: "BILL-2026-2289", invoice_date: "2026-06-04", invoice_received_date: "2026-06-07", due_date: "2026-07-02", currency: "GBP", amount: 5200, exchange_rate_locked: 1, base_amount_locked: 5200, base_amount: 5200, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "2026-06-28", remarks: "Hardware for JB-001", bank: "Barclays", charge: "OUR", swift_code: "BARCGB22", payment_advice_email: "ap@delta-components.co.uk" },
-        { id: 2, region: "NL", job_id: 1, job_no: "JB-001", payee_type: "SI", si_id: 1, company_name: "Ace Install BV", invoice_no: "SI-INV-2026-001", invoice_date: "2026-06-10", invoice_received_date: "2026-06-12", due_date: "2026-07-10", currency: "EUR", amount: 8400, exchange_rate_locked: 1, base_amount_locked: 8400, base_amount: 8400, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "", remarks: "Subcontract install work", bank: "ING", charge: "OUR", swift_code: "INGBNL2A", payment_advice_email: "invoice@ace-install.nl" }
+        { id: 1, region: "UK", job_id: 1, job_no: "JB-DEMO-001", payee_type: "Vendor", si_id: null, company_name: "Sterling Demo Supplies Ltd", invoice_no: "BILL-DEMO-2026-2289", invoice_date: "2026-06-04", invoice_received_date: "2026-06-07", due_date: "2026-07-02", currency: "GBP", amount: 5200, exchange_rate_locked: 1, base_amount_locked: 5200, base_amount: 5200, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "2026-06-28", remarks: "Sample hardware for JB-DEMO-001", bank: "Demo Bank UK", charge: "OUR", swift_code: "DEMOGB2L", payment_advice_email: "ap@demo-sterling.example" },
+        { id: 2, region: "NL", job_id: 1, job_no: "JB-DEMO-001", payee_type: "SI", si_id: 1, company_name: "Canal Demo Install BV", invoice_no: "SI-DEMO-2026-001", invoice_date: "2026-06-10", invoice_received_date: "2026-06-12", due_date: "2026-07-10", currency: "EUR", amount: 8400, exchange_rate_locked: 1, base_amount_locked: 8400, base_amount: 8400, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "", remarks: "Sample subcontract install", bank: "Demo Bank NL", charge: "OUR", swift_code: "DEMONL2A", payment_advice_email: "invoice@demo-canalinstall.example" },
+        { id: 3, region: "DE", job_id: 2, job_no: "JB-DEMO-002", payee_type: "Vendor", si_id: null, company_name: "Nordlicht Demo Media GmbH", invoice_no: "BILL-DEMO-2026-2295", invoice_date: "2026-05-28", invoice_received_date: "2026-05-30", due_date: "2026-06-27", currency: "EUR", amount: 3900, exchange_rate_locked: 1, base_amount_locked: 3900, base_amount: 3900, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "", remarks: "Sample marketing services", bank: "Demo Bank DE", charge: "OUR", swift_code: "DEMODEFF", payment_advice_email: "billing@demo-nordlicht.example" },
+        { id: 4, region: "US", job_id: 5, job_no: "JB-DEMO-005", payee_type: "Vendor", si_id: null, company_name: "Lakeview Demo Parts Inc", invoice_no: "BILL-DEMO-2026-2301", invoice_date: "2026-06-02", invoice_received_date: "2026-06-05", due_date: "2026-07-02", currency: "USD", amount: 6100, exchange_rate_locked: 1, base_amount_locked: 6100, base_amount: 6100, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "", remarks: "Sample spare parts", bank: "Demo Bank US", charge: "OUR", swift_code: "DEMOUS33", payment_advice_email: "invoices@demo-lakeview.example" }
       ];
 
       const initialApprovals = [
-        { id: 1, doc: "PO-2026-4411 / IT Hardware", requester: "Benson", status: "Pending CFO" },
-        { id: 2, doc: "BILL-2026-2289 / Marketing Agency", requester: "Amy", status: "Pending Finance" },
-        { id: 3, doc: "Expense Batch / Travel Reimbursement", requester: "Sales Team", status: "Over SLA" }
+        { id: 1, doc: "PO-DEMO-2026-4411 / IT Hardware (sample)", requester: "James Porter", status: "Pending CFO" },
+        { id: 2, doc: "BILL-DEMO-2026-2289 / Marketing Agency (sample)", requester: "Helena Weiss", status: "Pending Finance" },
+        { id: 3, doc: "Expense Batch / Travel Reimbursement (sample)", requester: "Operations Team", status: "Over SLA" }
       ];
 
       const initialUsers = [
-        { id: 1, name: "Root Admin", email: "root@erp.local", password: "root", role: "root", is_active: true, permissions: fullPermissions(), allowed_regions: ["ALL"] },
+        { id: 1, name: "Demo Admin", email: "admin@demo.checkitnow.example", password: "root", role: "root", is_active: true, permissions: fullPermissions(), allowed_regions: ["ALL"] },
         {
-          id: 2, name: "Finance User", email: "finance@erp.local", password: "demo", role: "user", is_active: true, allowed_regions: ["UK"],
+          id: 2, name: "Elena Fischer", email: "finance@demo.checkitnow.example", password: "demo", role: "user", is_active: true, allowed_regions: ["UK", "DE", "FR", "NL"],
           permissions: {
             dashboard: { view: true, add: false, edit: false, delete: false, export: false, import: false },
             management_report: { view: true, add: false, edit: false, delete: false, export: false, import: false },
@@ -2254,8 +2303,9 @@
       ];
 
       const initialAuditLogs = [
-        { id: 1, at: "2026-06-30T08:15:00.000Z", user_id: 1, user_name: "Root Admin", user_email: "root@erp.local", module: "clients", action: "create", entity: "Pacific Systems", detail: "Created client CUST-0001" },
-        { id: 2, at: "2026-06-30T09:42:00.000Z", user_id: 2, user_name: "Finance User", user_email: "finance@erp.local", module: "ar", action: "update", entity: "INV-2026-1192", detail: "Updated AR invoice payment status" }
+        { id: 1, at: "2026-06-30T08:15:00.000Z", user_id: 1, user_name: "Demo Admin", user_email: "admin@demo.checkitnow.example", module: "clients", action: "create", entity: "Northbridge Sample Manufacturing Ltd", detail: "Created sample client DEMO-C-0001 (fictional)" },
+        { id: 2, at: "2026-06-30T09:42:00.000Z", user_id: 2, user_name: "Elena Fischer", user_email: "finance@demo.checkitnow.example", module: "ar", action: "update", entity: "INV-DEMO-2026-1192", detail: "Updated sample AR invoice status" },
+        { id: 3, at: "2026-06-29T14:20:00.000Z", user_id: 2, user_name: "Elena Fischer", user_email: "finance@demo.checkitnow.example", module: "job", action: "create", entity: "JB-DEMO-004", detail: "Created sample job for Harborline Demo Trading BV" }
       ];
 
       function loadJson(key, fallback) {
@@ -2823,8 +2873,14 @@
         const [worldTimeZone, setWorldTimeZone] = useState(() => localStorage.getItem("erp_world_timezone") || "Europe/London");
         const [worldClock, setWorldClock] = useState(() => new Date());
         const [settingsTab, setSettingsTab] = useState("general");
-        const [companyName, setCompanyName] = useState(() => localStorage.getItem("erp_company_name") || "");
-        const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem("erp_company_logo") || "");
+        const [companyName, setCompanyName] = useState(() => localStorage.getItem("erp_company_name") || INTL_BRAND.name);
+        const sidebarLogo = INTL_BRAND.logo;
+
+        useEffect(() => {
+          localStorage.setItem("erp_company_logo", sidebarLogo);
+          localStorage.setItem("erp_company_name", INTL_BRAND.name);
+        }, [sidebarLogo]);
+        const companyLogo = sidebarLogo;
         const [erpSyncKey, setErpSyncKey] = useState(() => localStorage.getItem("erp_sync_key") || "");
         const [cloudDbStatus, setCloudDbStatus] = useState(null);
         const [liveSyncEnabled, setLiveSyncEnabled] = useState(false);
@@ -4338,7 +4394,7 @@
             if (d.settings.activeRegion) { localStorage.setItem("erp_active_region", d.settings.activeRegion); setActiveRegion(d.settings.activeRegion); }
             if (d.settings.worldTimeZone) setWorldTimeZone(d.settings.worldTimeZone);
             if (d.settings.companyName != null) { localStorage.setItem("erp_company_name", d.settings.companyName); setCompanyName(d.settings.companyName); }
-            if (d.settings.companyLogo != null) { localStorage.setItem("erp_company_logo", d.settings.companyLogo); setCompanyLogo(d.settings.companyLogo); }
+            if (d.settings.companyLogo != null) { localStorage.setItem("erp_company_logo", INTL_BRAND.logo); }
             if (d.settings.currentUserId) setCurrentUserId(Number(d.settings.currentUserId));
           }
           return true;
@@ -4556,7 +4612,7 @@
             if (s.activeRegion) { localStorage.setItem("erp_active_region", s.activeRegion); setActiveRegion(s.activeRegion); }
             if (s.worldTimeZone) setWorldTimeZone(s.worldTimeZone);
             if (s.companyName != null) { localStorage.setItem("erp_company_name", s.companyName); setCompanyName(s.companyName); }
-            if (s.companyLogo != null) { localStorage.setItem("erp_company_logo", s.companyLogo); setCompanyLogo(s.companyLogo); }
+            if (s.companyLogo != null) { localStorage.setItem("erp_company_logo", INTL_BRAND.logo); }
             if (s.currentUserId) setCurrentUserId(Number(s.currentUserId));
             if (s.sidebarCollapsed != null) setSidebarCollapsed(!!s.sidebarCollapsed);
           }
@@ -4585,7 +4641,7 @@
             if (s.activeRegion) { localStorage.setItem("erp_active_region", s.activeRegion); setActiveRegion(s.activeRegion); }
             if (s.worldTimeZone) setWorldTimeZone(s.worldTimeZone);
             if (s.companyName != null) { localStorage.setItem("erp_company_name", s.companyName); setCompanyName(s.companyName); }
-            if (s.companyLogo != null) { localStorage.setItem("erp_company_logo", s.companyLogo); setCompanyLogo(s.companyLogo); }
+            if (s.companyLogo != null) { localStorage.setItem("erp_company_logo", INTL_BRAND.logo); }
             if (s.currentUserId) setCurrentUserId(Number(s.currentUserId));
             if (s.sidebarCollapsed != null) setSidebarCollapsed(!!s.sidebarCollapsed);
           }
@@ -5488,18 +5544,24 @@
 
         return (
           <>
-            <div className="bg-amber-400 text-amber-950 text-center text-xs py-1.5 font-semibold tracking-wide">International Demo · Europe / UK · No Login Required · English UI</div>
+            <div className="bg-slate-800 text-slate-100 text-center text-xs py-1.5 font-semibold tracking-wide">CheckItNow · International Demo · Sample data only (fictional companies) · English UI</div>
             <div className="erp-app-shell flex min-h-screen w-full">
-            <aside className={(sidebarCollapsed ? "w-16" : "w-52") + " shrink-0 bg-slate-900 text-slate-100 py-3 transition-all duration-300 ease-in-out overflow-hidden " + (sidebarCollapsed ? "px-2" : "px-3")}>
-              <div className={"mb-3 " + (sidebarCollapsed ? "flex flex-col items-center" : "px-0.5")}>
-                <div className={"flex items-center gap-2.5 min-h-[2.5rem] " + (sidebarCollapsed ? "justify-center" : "")}>
-                  <div
-                    className="shrink-0 w-10 h-10 rounded-lg border border-dashed border-slate-600 bg-slate-800/80 flex items-center justify-center overflow-hidden"
-                    title={t("companyLogoSlot")}
-                    aria-label={t("companyLogoSlot")}
-                  >
-                    {companyLogo ? (
-                      <img src={companyLogo} alt="" className="w-full h-full object-contain p-0.5" />
+            <aside className={(sidebarCollapsed ? "w-16" : "w-52") + " shrink-0 bg-slate-900 text-slate-100 py-3 transition-all duration-300 ease-in-out overflow-hidden flex flex-col min-h-screen " + (sidebarCollapsed ? "px-2" : "px-3")}>
+              <div className={"mb-3 shrink-0 " + (sidebarCollapsed ? "flex flex-col items-center" : "px-0.5")}>
+                <div className={"flex items-center gap-2.5 min-h-[2.5rem] w-full " + (sidebarCollapsed ? "justify-center" : "")}>
+                  <div className={sidebarCollapsed ? "w-10 rounded-md bg-white px-1 py-0.5 flex items-center justify-center overflow-hidden shrink-0" : "flex-1 min-w-0 rounded-md bg-white px-2 py-1 flex items-center overflow-hidden"}>
+                    {sidebarLogo ? (
+                      <img
+                        src={sidebarLogo}
+                        alt="CheckItNow"
+                        className={sidebarCollapsed ? "max-h-8 max-w-full object-contain" : "h-8 w-full object-contain object-left"}
+                        onError={(e) => {
+                          const el = e.currentTarget;
+                          if (el.dataset.fallback === "1") return;
+                          el.dataset.fallback = "1";
+                          el.src = "/DEMO_INTL/logo.png";
+                        }}
+                      />
                     ) : (
                       <svg className="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                         <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -6659,6 +6721,9 @@
                       <p className="text-sm text-slate-500">{t("worldTimeHint")}</p>
                       <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{timezoneLabel(worldTimeZone, lang)} · {formatWorldTime(worldClock, worldTimeZone, lang)}</p>
                       <p className="text-sm text-slate-500">{t("regionDataHint")}</p>
+                      {ERP_INTL_EU && (
+                        <p className="text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">{t("demoDataDisclaimer")}</p>
+                      )}
                       <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{t("noDatabaseNote")}</p>
                     </div>
                   )}
