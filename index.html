@@ -634,7 +634,9 @@
           mgmtRevenueHint: "AR from Completed jobs / Accepted quotations", mgmtCogsHint: "Vendor & SI AP on qualifying jobs",
           mgmtClientProfitShare: "This client accounts for {pct}% of company profit",
           mgmtAggregatedRegions: "Aggregated across {n} regions · FX to {currency}",
-          mgmtTopClientsTitle: "Top Clients by Profit", mgmtTopClientsHint: "Bar length = net profit · click to drill down · margin % on the right",
+          mgmtConsolidatedHint: "All {n} regions consolidated · amounts converted to {currency} at demo FX rates",
+          mgmtAmountInCurrency: "All amounts in {currency}",
+          mgmtTopClientsTitle: "Top Clients by Profit", mgmtTopClientsHint: "Bar length = net profit · amounts show currency symbol · click to drill down",
           mgmtJobTypeTitle: "Profit by Job Type", mgmtJobTypeHint: "Share of net profit by Maintenance / Service / Project / Trade",
           mgmtCashForecastTitle: "3-Month Cash Flow Forecast", mgmtCashForecastHint: "Unpaid AR due dates vs unpaid AP due dates",
           mgmtCashIn: "Cash In", mgmtCashOut: "Cash Out", mgmtNetCashFlow: "Net Cash Flow",
@@ -1398,6 +1400,18 @@
         return Number(value || 0).toLocaleString(locale, { maximumFractionDigits: 2 });
       }
 
+      function formatMoneyCurrency(value, ccy) {
+        const c = String(ccy || "EUR").toUpperCase();
+        const n = money(value);
+        if (c === "EUR") return "€" + n;
+        if (c === "GBP") return "£" + n;
+        if (c === "USD") return "$" + n;
+        if (c === "CHF") return "CHF " + n;
+        if (c === "PLN") return "zł" + n;
+        if (c === "SEK" || c === "NOK" || c === "DKK") return n + " kr";
+        return n + " " + c;
+      }
+
       function nowIso() { return new Date().toISOString(); }
 
       function emptyClient() {
@@ -1841,12 +1855,13 @@
         return t("mgmtNatureProject");
       }
 
-      function MgmtMarginBar({ row, maxProfit, onSelect, t }) {
+      function MgmtMarginBar({ row, maxProfit, onSelect, t, displayCurrency }) {
         const profitAmt = Math.max(0, row.profit);
         const width = maxProfit > 0 ? Math.max(4, (profitAmt / maxProfit) * 100) : 0;
         const danger = row.marginPct < 10;
         const warn = row.marginPct < 20 && !danger;
         const barColor = danger ? "#dc2626" : warn ? "#ea580c" : "#2563eb";
+        const ccy = displayCurrency || REGION_CURRENCY[row.region] || "EUR";
         return (
           <button type="button" onClick={() => onSelect && onSelect(row.company)} className="w-full flex items-center gap-2 py-2.5 px-1 hover:bg-slate-50 rounded-lg text-left group">
             <span className="w-[32%] min-w-0 text-sm font-medium text-slate-800 truncate">
@@ -1857,8 +1872,8 @@
             <span className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden min-w-[3rem]">
               <span className="block h-full rounded-full transition-all" style={{ width: width + "%", background: barColor }} />
             </span>
-            <span className={"min-w-[7.5rem] text-right text-sm font-semibold tabular-nums whitespace-nowrap " + (danger ? "text-red-600" : warn ? "text-orange-600" : "text-slate-700")}>
-              {money(row.profit)} ({row.marginPct.toFixed(1)}%)
+            <span className={"min-w-[9rem] text-right text-sm font-semibold tabular-nums whitespace-nowrap " + (danger ? "text-red-600" : warn ? "text-orange-600" : "text-slate-700")}>
+              {formatMoneyCurrency(row.profit, ccy)} ({row.marginPct.toFixed(1)}%)
             </span>
           </button>
         );
@@ -3163,6 +3178,12 @@
 
         const activeBaseCurrency = baseCurrency === "OTHER" ? (customCurrency || "USD").toUpperCase() : baseCurrency;
         const regionListCurrency = currencyForRegion(activeRegion, activeBaseCurrency);
+
+        useEffect(() => {
+          if (activeRegion !== "ALL") return;
+          const c = activeBaseCurrency;
+          if (MGMT_GROUP_CURRENCIES.includes(c)) setMgmtGroupCurrency(c);
+        }, [activeRegion, activeBaseCurrency]);
         const amtInLabel = amtInCurrencyLabel(regionListCurrency, t);
 
         const scopedClients = useMemo(() => clients.filter(recordInActiveRegion), [clients, activeRegion, users, currentUserId]);
@@ -3192,6 +3213,9 @@
           activeRegion,
           regionCount: mgmtRegionCount
         }), [scopedJobs, scopedQuotations, scopedArInvoices, scopedApBills, mgmtClientFilter, mgmtDisplayCurrency, mgmtCompareCurrency, lang, activeRegion, mgmtRegionCount]);
+        const mgmtConsolidatedLabel = activeRegion === "ALL"
+          ? t("mgmtConsolidatedHint").replace("{n}", String(mgmtRegionCount)).replace("{currency}", mgmtDisplayCurrency)
+          : t("mgmtAmountInCurrency").replace("{currency}", mgmtDisplayCurrency);
         const mgmtClientOptions = useMemo(() => {
           const names = new Set();
           mgmtReport.clientMargins.forEach((c) => names.add(c.company));
@@ -5658,7 +5682,11 @@
                       {getUserRegions().map((rid) => <option key={rid} value={rid}>{regionLabel(rid, lang)}</option>)}
                     </select>
                   </div>
-                  <select value={baseCurrency} onChange={(e) => setBaseCurrency(e.target.value)} className="h-9 w-[4.5rem] shrink-0 rounded-lg border border-slate-300 bg-white text-xs px-2">
+                  <select value={baseCurrency} onChange={(e) => {
+                    const c = e.target.value;
+                    setBaseCurrency(c);
+                    if (activeRegion === "ALL" && MGMT_GROUP_CURRENCIES.includes(c)) setMgmtGroupCurrency(c);
+                  }} className="h-9 w-[4.5rem] shrink-0 rounded-lg border border-slate-300 bg-white text-xs px-2">
                     {HEADER_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                   {baseCurrency === "OTHER" && <Input placeholder="e.g. CAD" className="w-16 h-9 text-xs px-2 bg-white shrink-0" value={customCurrency} onChange={(e) => setCustomCurrency(e.target.value)} />}
@@ -5837,7 +5865,11 @@
                       <>
                         <div>
                           <label className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1">{t("mgmtGroupCurrency")}</label>
-                          <select value={mgmtGroupCurrency} onChange={(e) => setMgmtGroupCurrency(e.target.value)} className="h-9 w-[5.5rem] rounded-lg border border-slate-300 bg-white text-sm px-2 font-semibold">
+                          <select value={mgmtGroupCurrency} onChange={(e) => {
+                            const c = e.target.value;
+                            setMgmtGroupCurrency(c);
+                            setBaseCurrency(c);
+                          }} className="h-9 w-[5.5rem] rounded-lg border border-slate-300 bg-white text-sm px-2 font-semibold">
                             {MGMT_GROUP_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </div>
@@ -5871,24 +5903,24 @@
                       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <DashGradientCard
                           title={t("mgmtGrossRevenue")}
-                          value={money(mgmtReport.grossRevenue) + " " + mgmtReport.displayCurrency}
-                          hint={t("mgmtRevenueHint")}
+                          value={formatMoneyCurrency(mgmtReport.grossRevenue, mgmtReport.displayCurrency)}
+                          hint={activeRegion === "ALL" ? mgmtConsolidatedLabel : t("mgmtRevenueHint")}
                           badge={activeRegion === "ALL" ? t("mgmtAggregatedRegions").replace("{n}", String(mgmtReport.regionCount)).replace("{currency}", mgmtReport.displayCurrency) : mgmtReport.displayCurrency}
                           gradient={MGMT_CARD_GRADIENTS.revenue}
                           icon={<DashCardIcon><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></DashCardIcon>}
                         />
                         <DashGradientCard
                           title={t("mgmtTotalCogs")}
-                          value={money(mgmtReport.totalCogs) + " " + mgmtReport.displayCurrency}
-                          hint={t("mgmtCogsHint")}
+                          value={formatMoneyCurrency(mgmtReport.totalCogs, mgmtReport.displayCurrency)}
+                          hint={activeRegion === "ALL" ? mgmtConsolidatedLabel : t("mgmtCogsHint")}
                           gradient={MGMT_CARD_GRADIENTS.cogs}
                           icon={<DashCardIcon><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /></DashCardIcon>}
                         />
                         <DashGradientCard
                           title={t("mgmtNetProfit")}
-                          value={money(mgmtReport.netProfit) + " " + mgmtReport.displayCurrency}
+                          value={formatMoneyCurrency(mgmtReport.netProfit, mgmtReport.displayCurrency)}
                           subValue={mgmtReport.grossRevenue > 0 ? t("mgmtGrossMargin") + " " + ((mgmtReport.netProfit / mgmtReport.grossRevenue) * 100).toFixed(1) + "%" : null}
-                          hint={mgmtReport.displayCurrency}
+                          hint={activeRegion === "ALL" ? mgmtConsolidatedLabel : t("mgmtAmountInCurrency").replace("{currency}", mgmtReport.displayCurrency)}
                           badge={mgmtReport.clientProfitSharePct != null ? t("mgmtClientProfitShare").replace("{pct}", mgmtReport.clientProfitSharePct.toFixed(1)) : null}
                           gradient={mgmtReport.netProfit >= 0 ? MGMT_CARD_GRADIENTS.profit : MGMT_CARD_GRADIENTS.loss}
                           icon={<DashCardIcon><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></DashCardIcon>}
@@ -5908,12 +5940,12 @@
                                 <div className="space-y-2 mb-3">
                                   <div className="rounded-lg bg-slate-50 px-3 py-2">
                                     <p className="text-[10px] uppercase text-slate-400">{t("mgmtLocalAmount")}</p>
-                                    <p className="text-lg font-bold tabular-nums text-slate-800">{money(reg.localProfit)} {reg.localCurrency}</p>
+                                    <p className="text-lg font-bold tabular-nums text-slate-800">{formatMoneyCurrency(reg.localProfit, reg.localCurrency)}</p>
                                     <p className="text-xs text-slate-500">{t("mgmtNetProfit")}</p>
                                   </div>
                                   <div className="rounded-lg bg-indigo-50 px-3 py-2">
                                     <p className="text-[10px] uppercase text-indigo-500">{t("mgmtConvertedAmount")}</p>
-                                    <p className="text-lg font-bold tabular-nums text-indigo-900">{money(reg.convertedProfit)} {mgmtReport.compareCurrency}</p>
+                                    <p className="text-lg font-bold tabular-nums text-indigo-900">{formatMoneyCurrency(reg.convertedProfit, mgmtReport.compareCurrency)}</p>
                                   </div>
                                 </div>
                                 {reg.clients.length > 0 && (
@@ -5921,7 +5953,7 @@
                                     {reg.clients.map((c) => (
                                       <li key={c.company} className="text-xs flex justify-between gap-2">
                                         <button type="button" onClick={() => setMgmtClientFilter(c.company)} className="text-left text-blue-700 hover:underline truncate">{c.company}</button>
-                                        <span className="shrink-0 tabular-nums text-slate-600">{money(c.profit)} · {c.marginPct.toFixed(0)}%</span>
+                                        <span className="shrink-0 tabular-nums text-slate-600">{formatMoneyCurrency(c.profit, reg.localCurrency)} · {c.marginPct.toFixed(0)}%</span>
                                       </li>
                                     ))}
                                   </ul>
@@ -5943,7 +5975,7 @@
                                   <div key={row.company} className="flex items-start gap-2">
                                     <span className="text-xs font-bold text-slate-400 w-5 pt-3 shrink-0">{i + 1}</span>
                                     <div className="flex-1 min-w-0">
-                                      <MgmtMarginBar row={row} maxProfit={Math.max(...mgmtReport.clientMargins.map((c) => Math.max(0, c.profit)), 1)} onSelect={setMgmtClientFilter} t={t} />
+                                      <MgmtMarginBar row={row} maxProfit={Math.max(...mgmtReport.clientMargins.map((c) => Math.max(0, c.profit)), 1)} onSelect={setMgmtClientFilter} t={t} displayCurrency={mgmtReport.displayCurrency} />
                                     </div>
                                   </div>
                                 ))}
@@ -5979,7 +6011,7 @@
                                         <span className="w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-white shadow-sm" style={{ background: "linear-gradient(135deg, " + (MGMT_JOB_TYPE_COLORS[row.type]?.from || "#475569") + ", " + palette.to + ")" }} />
                                         <span className="text-slate-700 truncate">{mgmtNatureLabel(row.type, t)}</span>
                                       </span>
-                                      <span className="text-right tabular-nums font-semibold text-slate-800">{money(row.profit)}</span>
+                                      <span className="text-right tabular-nums font-semibold text-slate-800">{formatMoneyCurrency(row.profit, mgmtReport.displayCurrency)}</span>
                                       <span className="text-right tabular-nums text-xs text-slate-500">{row.sharePct.toFixed(0)}%</span>
                                     </li>
                                   );
@@ -6003,7 +6035,7 @@
                           {mgmtClientFilter !== "all" && mgmtReport.overdueAr > 0 && (
                             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex justify-between items-center">
                               <span className="text-sm font-medium text-red-800">{t("mgmtOverdueAr")}</span>
-                              <span className="text-lg font-bold tabular-nums text-red-700">{money(mgmtReport.overdueAr)} {mgmtReport.displayCurrency}</span>
+                              <span className="text-lg font-bold tabular-nums text-red-700">{formatMoneyCurrency(mgmtReport.overdueAr, mgmtReport.displayCurrency)}</span>
                             </div>
                           )}
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -6015,9 +6047,9 @@
                                 {mgmtClientFilter === "all" ? (
                                   <>
                                     <div className="space-y-2 text-sm">
-                                      <div className="flex justify-between"><span className="text-slate-600">{t("mgmtCashIn")}</span><span className="font-semibold tabular-nums text-emerald-700">{money(mo.cashIn)}</span></div>
-                                      <div className="flex justify-between"><span className="text-slate-600">{t("mgmtCashOut")}</span><span className="font-semibold tabular-nums text-orange-700">{money(mo.cashOut)}</span></div>
-                                      <div className="flex justify-between pt-2 border-t border-slate-200"><span className="font-medium">{t("mgmtNetCashFlow")}</span><span className={"font-bold tabular-nums " + (mo.netCash >= 0 ? "text-emerald-700" : "text-red-600")}>{mo.netCash >= 0 ? "+" : ""}{money(mo.netCash)}</span></div>
+                                      <div className="flex justify-between"><span className="text-slate-600">{t("mgmtCashIn")}</span><span className="font-semibold tabular-nums text-emerald-700">{formatMoneyCurrency(mo.cashIn, mgmtReport.displayCurrency)}</span></div>
+                                      <div className="flex justify-between"><span className="text-slate-600">{t("mgmtCashOut")}</span><span className="font-semibold tabular-nums text-orange-700">{formatMoneyCurrency(mo.cashOut, mgmtReport.displayCurrency)}</span></div>
+                                      <div className="flex justify-between pt-2 border-t border-slate-200"><span className="font-medium">{t("mgmtNetCashFlow")}</span><span className={"font-bold tabular-nums " + (mo.netCash >= 0 ? "text-emerald-700" : "text-red-600")}>{mo.netCash >= 0 ? "+" : ""}{formatMoneyCurrency(mo.netCash, mgmtReport.displayCurrency)}</span></div>
                                     </div>
                                     {cashAlert && (
                                       <p className="mt-3 text-xs font-medium text-red-700 flex items-start gap-1">
@@ -6027,11 +6059,11 @@
                                   </>
                                 ) : (
                                   <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between"><span className="text-slate-600">{t("mgmtExpectedInMonth")}</span><span className="font-semibold tabular-nums text-emerald-700">{money(mo.cashIn)} {mgmtReport.displayCurrency}</span></div>
-                                    <div className="flex justify-between pt-2 border-t border-slate-200"><span className="font-medium">{t("mgmtNetCashFlow")}</span><span className="font-bold tabular-nums text-slate-800">{money(mo.cashIn)}</span></div>
+                                    <div className="flex justify-between"><span className="text-slate-600">{t("mgmtExpectedInMonth")}</span><span className="font-semibold tabular-nums text-emerald-700">{formatMoneyCurrency(mo.cashIn, mgmtReport.displayCurrency)}</span></div>
+                                    <div className="flex justify-between pt-2 border-t border-slate-200"><span className="font-medium">{t("mgmtNetCashFlow")}</span><span className="font-bold tabular-nums text-slate-800">{formatMoneyCurrency(mo.cashIn, mgmtReport.displayCurrency)}</span></div>
                                   </div>
                                 )}
-                                <p className="text-[10px] text-slate-400 mt-2">{mgmtReport.displayCurrency}</p>
+                                <p className="text-[10px] text-slate-400 mt-2">{t("mgmtAmountInCurrency").replace("{currency}", mgmtReport.displayCurrency)}</p>
                               </div>
                             );})}
                           </div>
