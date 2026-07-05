@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ERP System (DEV)</title>
+    <title>ERP System (International Demo)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -145,6 +145,9 @@
       const { useMemo, useState, useEffect, useRef } = React;
 
       const ERP_DEV_MODE = true;
+      const ERP_INTL_EU = true;
+      const ERP_DEFAULT_REGION = "UK";
+      const HEADER_CURRENCIES = ["EUR", "GBP", "USD", "CHF", "PLN", "SEK", "NOK", "DKK", "OTHER"];
 
       const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
       const ERP_MODULES = ["dashboard", "management_report", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "ar", "ap", "vendors", "si", "settings"];
@@ -152,28 +155,32 @@
       const JOB_STATUSES = ["Open", "In Progress", "Completed", "On Hold"];
       const PAYMENT_STAGES = ["", "Deposit", "Progress", "Balance", "Retention", "Final"];
       const ERP_REGIONS = [
-        { id: "HK", labelEn: "HK", labelZh: "香港" },
-        { id: "TW", labelEn: "TW", labelZh: "台灣" },
-        { id: "SG", labelEn: "SG", labelZh: "新加坡" },
-        { id: "MY", labelEn: "MY", labelZh: "馬來西亞" },
-        { id: "ID", labelEn: "ID", labelZh: "印尼" },
+        { id: "UK", labelEn: "United Kingdom", labelZh: "英國" },
+        { id: "DE", labelEn: "Germany", labelZh: "德國" },
+        { id: "FR", labelEn: "France", labelZh: "法國" },
+        { id: "NL", labelEn: "Netherlands", labelZh: "荷蘭" },
+        { id: "US", labelEn: "United States", labelZh: "美國" },
+        { id: "CH", labelEn: "Switzerland", labelZh: "瑞士" },
         { id: "ALL", labelEn: "ALL", labelZh: "全部" }
       ];
-      const DATA_REGION_IDS = ["HK", "TW", "SG", "MY", "ID"];
+      const DATA_REGION_IDS = ["UK", "DE", "FR", "NL", "US", "CH"];
 
       const REGION_MAP_PINS = {
-        HK: { lon: 114.17, lat: 22.32, labelEn: "Hong Kong", labelZh: "香港" },
-        TW: { lon: 121.0, lat: 25.0, labelEn: "Taiwan", labelZh: "台灣" },
-        SG: { lon: 103.82, lat: 1.35, labelEn: "Singapore", labelZh: "新加坡" },
-        MY: { lon: 101.7, lat: 3.1, labelEn: "Malaysia", labelZh: "馬來西亞" },
-        ID: { lon: 106.85, lat: -6.2, labelEn: "Indonesia", labelZh: "印尼" }
+        UK: { lon: -0.12, lat: 51.5, labelEn: "United Kingdom", labelZh: "英國" },
+        DE: { lon: 8.68, lat: 50.11, labelEn: "Germany", labelZh: "德國" },
+        FR: { lon: 2.35, lat: 48.86, labelEn: "France", labelZh: "法國" },
+        NL: { lon: 4.9, lat: 52.37, labelEn: "Netherlands", labelZh: "荷蘭" },
+        US: { lon: -74.0, lat: 40.71, labelEn: "United States", labelZh: "美國" },
+        CH: { lon: 7.45, lat: 46.95, labelEn: "Switzerland", labelZh: "瑞士" }
       };
 
-      const REGION_COUNTRY_IDS = { HK: "156", TW: "158", MY: "458", ID: "360" };
-      const REGION_FLAGS = { HK: "🇭🇰", TW: "🇹🇼", SG: "🇸🇬", MY: "🇲🇾", ID: "🇮🇩" };
+      const REGION_COUNTRY_IDS = { UK: "826", DE: "276", FR: "250", NL: "528", US: "840", CH: "756" };
+      const REGION_FLAGS = { UK: "🇬🇧", DE: "🇩🇪", FR: "🇫🇷", NL: "🇳🇱", US: "🇺🇸", CH: "🇨🇭" };
 
       function worldMapView() {
-        return (window.ERP_WORLD_MAP && window.ERP_WORLD_MAP.view) || { lonMin: -170, lonMax: 170, latMin: -50, latMax: 72, width: 960, height: 420 };
+        const base = (window.ERP_WORLD_MAP && window.ERP_WORLD_MAP.view) || { lonMin: -170, lonMax: 170, latMin: -50, latMax: 72, width: 960, height: 420 };
+        if (ERP_INTL_EU) return { ...base, lonMin: -30, lonMax: 50, latMin: 34, latMax: 72, width: base.width || 960, height: base.height || 420 };
+        return base;
       }
 
       function mapPinXY(pin) {
@@ -184,7 +191,8 @@
         };
       }
 
-      const REGION_CURRENCY = { HK: "HKD", TW: "TWD", SG: "SGD", MY: "MYR", ID: "IDR" };
+      const REGION_CURRENCY = { UK: "GBP", DE: "EUR", FR: "EUR", NL: "EUR", US: "USD", CH: "CHF" };
+      const ERP_DEFAULT_CURRENCY = REGION_CURRENCY[ERP_DEFAULT_REGION] || "EUR";
 
       function currencyForRegion(activeRegion, headerCurrency) {
         if (activeRegion && activeRegion !== "ALL" && REGION_CURRENCY[activeRegion]) {
@@ -203,18 +211,22 @@
         return i18nLang(lang) === "zh_TW" ? r.labelZh : r.labelEn;
       }
 
-      function ensureRegionOnRecords(arr, fallback = "HK") {
+      function ensureRegionOnRecords(arr, fallback = ERP_DEFAULT_REGION) {
         return (arr || []).map((x) => ({ ...x, region: x.region || fallback }));
       }
       const WORLD_TIMEZONES = [
         { id: "UTC", labelEn: "UTC (World Standard)", labelZh: "UTC（世界標準時間）" },
+        { id: "Europe/London", labelEn: "London (UK)", labelZh: "倫敦" },
+        { id: "Europe/Berlin", labelEn: "Berlin (Germany)", labelZh: "柏林" },
+        { id: "Europe/Paris", labelEn: "Paris (France)", labelZh: "巴黎" },
+        { id: "Europe/Amsterdam", labelEn: "Amsterdam (Netherlands)", labelZh: "阿姆斯特丹" },
+        { id: "Europe/Zurich", labelEn: "Zurich (Switzerland)", labelZh: "蘇黎世" },
+        { id: "America/New_York", labelEn: "New York (US East)", labelZh: "紐約" },
+        { id: "America/Chicago", labelEn: "Chicago (US Central)", labelZh: "芝加哥" }
+      ].concat(ERP_INTL_EU ? [] : [
         { id: "Asia/Hong_Kong", labelEn: "Hong Kong", labelZh: "香港" },
-        { id: "Asia/Taipei", labelEn: "Taipei", labelZh: "台北" },
-        { id: "Asia/Singapore", labelEn: "Singapore", labelZh: "新加坡" },
-        { id: "Asia/Tokyo", labelEn: "Tokyo", labelZh: "東京" },
-        { id: "Europe/London", labelEn: "London", labelZh: "倫敦" },
-        { id: "America/New_York", labelEn: "New York", labelZh: "紐約" }
-      ];
+        { id: "Asia/Singapore", labelEn: "Singapore", labelZh: "新加坡" }
+      ]);
 
       function timezoneLabel(id, lang) {
         const tz = WORLD_TIMEZONES.find((x) => x.id === id);
@@ -272,7 +284,7 @@
             { header: "Type", field: "job_type", required: true, hint: "Project / Service / Maintenance / Trading(Buy) / Trading(Sell)" },
             { header: "Quotation No", field: "quotation_no", hint: "" },
             { header: "Amount", field: "amount", hint: "Numeric" },
-            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / RMB / AUD" },
+            { header: "Currency", field: "currency", hint: "EUR / GBP / USD / CHF / PLN" },
             { header: "Customer PO", field: "customer_po", hint: "" },
             { header: "Customer PO Amount", field: "customer_po_amount", hint: "Numeric" },
             { header: "Status", field: "status", hint: "Open / In Progress / Completed / On Hold" },
@@ -290,7 +302,7 @@
             { header: "Job No", field: "job_no", required: true, hint: "Must match existing job" },
             { header: "Customer", field: "customer", hint: "Optional if job exists" },
             { header: "Customer PO", field: "customer_po", hint: "" },
-            { header: "Invoice Currency", field: "invoice_currency", hint: "USD / HKD / SGD / AUD" },
+            { header: "Invoice Currency", field: "invoice_currency", hint: "EUR / GBP / USD / CHF" },
             { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final" },
             { header: "Invoice Amt", field: "invoice_amt", required: true, hint: "Numeric" },
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
@@ -310,7 +322,7 @@
             { header: "Company Name", field: "company_name", required: true, hint: "Vendor or SI name" },
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
-            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / AUD" },
+            { header: "Currency", field: "currency", hint: "EUR / GBP / USD / CHF" },
             { header: "Amount", field: "amount", required: true, hint: "Numeric" },
             { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final" },
             { header: "Pay Date", field: "pay_date", hint: "YYYY-MM-DD" },
@@ -357,7 +369,7 @@
             { header: "Quotation Date", field: "quotation_date", hint: "YYYY-MM-DD" },
             { header: "Valid Until", field: "valid_until", hint: "YYYY-MM-DD" },
             { header: "Amount", field: "amount", required: true, hint: "Numeric" },
-            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / AUD" },
+            { header: "Currency", field: "currency", hint: "EUR / GBP / USD / CHF / PLN" },
             { header: "Status", field: "status", hint: "Draft / Sent / Accepted / Rejected / Expired" },
             { header: "Job No", field: "job_no", hint: "Optional linked job" },
             { header: "Description", field: "description", hint: "" }
@@ -438,7 +450,7 @@
       }
 
       function formatWorldTime(date, timeZone, lang) {
-        const locale = i18nLang(lang) === "zh_TW" ? "zh-TW" : "en-GB";
+        const locale = uiLocale(lang);
         return new Intl.DateTimeFormat(locale, {
           timeZone,
           year: "numeric",
@@ -472,13 +484,19 @@
 
       function i18nLang(lang) {
         if (!lang) return "en";
+        if (ERP_INTL_EU) return "en";
         if (lang === "zh_TW" || lang === "zh" || lang.startsWith("zh")) return "zh_TW";
         return "en";
       }
 
+      function uiLocale(lang) {
+        if (i18nLang(lang) === "zh_TW") return "zh-TW";
+        return ERP_INTL_EU ? "en-GB" : "en-US";
+      }
+
       const I18N = {
         en: {
-          appTitle: "ERP System (DEV)", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_management_report: "Management Report", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
+          appTitle: "ERP System (International)", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_management_report: "Management Report", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
           baseCurrency: "Base Currency", hintClickRow: "Click a row or use View/Edit to manage records", newTransaction: "+ New Transaction",
           view: "View", edit: "Edit", save: "Save", cancel: "Cancel", all: "All", groupByClient: "Group by Client", groupByVendor: "Group by Vendor", displayMode: "Display", listView: "Flat list (all)", groupHint: "Filter Client shows only that client. Grouped view adds section headers while keeping all visible.", jobStatus: "Job Status",
           filterClient: "Filter Client", filterJob: "Filter Job", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
@@ -602,10 +620,10 @@
           dashNoDueSoon: "Nothing due in the next 14 days", dashNoOverdue: "No overdue items",
           dashAgingCurrent: "Not yet due", dashAging1_30: "1–30 days overdue", dashAging31_60: "31–60 days overdue", dashAging61_90: "61–90 days overdue", dashAging90plus: "90+ days overdue",
           dashThisMonthIn: "AR due this month", dashThisMonthOut: "AP due this month", dashViewAll: "View all", dashDueDate: "Due",
-          dashGlobalMap: "Global Financial Map", dashGlobalMapHint: "World map · regional AR share below",
+          dashGlobalMap: "Global Financial Map", dashGlobalMapHint: ERP_INTL_EU ? "Europe & UK · regional AR share below" : "World map · regional AR share below",
           dashMapArTotal: "AR Outstanding", dashMapActiveJobs: "Active Jobs", dashMapOverdueAlert: "Overdue AR — action needed",
           dashMapApTotal: "AP Outstanding", dashMapNetRegion: "Net (AR − AP)",
-          dashMapZoomIn: "Zoom in", dashMapZoomOut: "Zoom out", dashMapZoomReset: "Reset", dashMapZoomAsia: "Asia-Pacific",
+          dashMapZoomIn: "Zoom in", dashMapZoomOut: "Zoom out", dashMapZoomReset: "Reset", dashMapZoomAsia: "Asia-Pacific", dashMapZoomEurope: "Europe",
           dashMapExpandHint: "Click row to expand details",
           dashMapLegendHealthy: "Healthy", dashMapLegendCaution: "AP > AR", dashMapLegendAlert: "Overdue AR", dashMapLegendEmpty: "No activity",
           dashMapGoRegion: "Switch to this region",
@@ -1019,7 +1037,7 @@
         );
       }
 
-      const fxUsdMap = { USD: 1, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, EUR: 0.92, JPY: 160, MYR: 4.7, IDR: 16000, AUD: 1.55 };
+      const fxUsdMap = { USD: 1, EUR: 0.92, GBP: 0.79, CHF: 0.88, PLN: 4.02, SEK: 10.6, NOK: 10.8, DKK: 6.9, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, JPY: 160, MYR: 4.7, IDR: 16000, AUD: 1.55, CAD: 1.36 };
 
       function calcOverdueDays(dueDate) {
         if (!dueDate) return 0;
@@ -1096,17 +1114,17 @@
       }
 
       function monthChartLabel(year, monthIndex, lang) {
-        const locale = i18nLang(lang) === "zh_TW" ? "zh-TW" : "en-US";
+        const locale = uiLocale(lang);
         return new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(year, monthIndex, 1));
       }
 
       function monthShortLabel(year, monthIndex, lang) {
-        const locale = i18nLang(lang) === "zh_TW" ? "zh-TW" : "en-US";
+        const locale = uiLocale(lang);
         return new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(year, monthIndex, 1));
       }
 
       function monthTableHeader(year, monthIndex, lang) {
-        const locale = i18nLang(lang) === "zh_TW" ? "zh-TW" : "en-US";
+        const locale = uiLocale(lang);
         return new Intl.DateTimeFormat(locale, { month: "long" }).format(new Date(year, monthIndex, 1));
       }
 
@@ -1218,7 +1236,7 @@
               const baseAmt = convertCurrency(pe.sourceAmt, jobCurrency, lineCurrency);
               const displayJobNo = pe.po_no ? job.job_no + " / " + pe.po_no : job.job_no;
               const patch = {
-                region: job.region || "HK",
+                region: job.region || ERP_DEFAULT_REGION,
                 year: y,
                 month: m + 1,
                 job_no: displayJobNo,
@@ -1252,7 +1270,7 @@
             const sourceAmt = Number(r.invoice_amt || 0);
             const baseAmt = resolveArDisplayAmount(r, lineCurrency);
             const patch = {
-              region: r.region || "HK",
+              region: r.region || ERP_DEFAULT_REGION,
               year: y,
               month: m + 1,
               job_no: r.job_no || "",
@@ -1299,7 +1317,7 @@
         }
         const base = Number(r.base_amount_locked ?? r.base_amount);
         if (base > 0) {
-          const recordCur = REGION_CURRENCY[r.region] || r.invoice_currency || "HKD";
+          const recordCur = REGION_CURRENCY[r.region] || r.invoice_currency || "EUR";
           return convertCurrency(base, recordCur, targetCurrency);
         }
         return 0;
@@ -1312,7 +1330,7 @@
         }
         const base = Number(b.base_amount_locked ?? b.base_amount);
         if (base > 0) {
-          const recordCur = REGION_CURRENCY[b.region] || b.currency || "HKD";
+          const recordCur = REGION_CURRENCY[b.region] || b.currency || "EUR";
           return convertCurrency(base, recordCur, targetCurrency);
         }
         return 0;
@@ -1337,7 +1355,8 @@
       }
 
       function money(value) {
-        return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+        const locale = ERP_INTL_EU ? "en-GB" : undefined;
+        return Number(value || 0).toLocaleString(locale, { maximumFractionDigits: 2 });
       }
 
       function nowIso() { return new Date().toISOString(); }
@@ -1347,7 +1366,7 @@
       }
 
       function emptyJob() {
-        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", customer_po_amount: "", quotation_no: "", linked_quotation_nos: [], amount: "", currency: "USD", status: "Open", description: "", remarks: "", start_date: "", po_lines: [] };
+        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", customer_po_amount: "", quotation_no: "", linked_quotation_nos: [], amount: "", currency: ERP_INTL_EU ? ERP_DEFAULT_CURRENCY : "USD", status: "Open", description: "", remarks: "", start_date: "", po_lines: [] };
       }
 
       function emptyPoLine() {
@@ -1476,7 +1495,7 @@
         return "Project";
       }
 
-      const MGMT_GROUP_CURRENCIES = ["HKD", "TWD", "SGD", "USD"];
+      const MGMT_GROUP_CURRENCIES = ["EUR", "GBP", "USD", "CHF"];
       const MGMT_JOB_NATURES = ["Maintenance", "Service", "Project", "Trade"];
       const MGMT_JOB_TYPE_COLORS = {
         Maintenance: { from: "#1e40af", to: "#60a5fa", light: "#93c5fd" },
@@ -1642,13 +1661,13 @@
         qualAr.forEach((r) => {
           const company = r.customer || "-";
           const job = jobs.find((j) => j.id === r.job_id || j.job_no === r.job_no);
-          if (!clientMap[company]) clientMap[company] = { company, region: (job && job.region) || r.region || "HK", revenue: 0, cogs: 0 };
+          if (!clientMap[company]) clientMap[company] = { company, region: (job && job.region) || r.region || ERP_DEFAULT_REGION, revenue: 0, cogs: 0 };
           clientMap[company].revenue += resolveArDisplayAmount(r, displayCurrency);
         });
         qualAp.forEach((b) => {
           const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
           const company = job ? job.company : "-";
-          if (!clientMap[company]) clientMap[company] = { company, region: (job && job.region) || b.region || "HK", revenue: 0, cogs: 0 };
+          if (!clientMap[company]) clientMap[company] = { company, region: (job && job.region) || b.region || ERP_DEFAULT_REGION, revenue: 0, cogs: 0 };
           clientMap[company].cogs += resolveApDisplayAmount(b, displayCurrency);
         });
 
@@ -1723,9 +1742,9 @@
         }).reduce((s, r) => s + resolveArDisplayAmount(r, displayCurrency), 0);
 
         const regionBreakdown = activeRegion === "ALL" ? DATA_REGION_IDS.map((regionId) => {
-          const localCcy = REGION_CURRENCY[regionId] || "HKD";
-          const regAr = arInvoices.filter((r) => (r.region || "HK") === regionId && arQualifiesForMgmt(r, jobs, quotations));
-          const regAp = apBills.filter((b) => (b.region || "HK") === regionId && apQualifiesForMgmt(b, jobs, quotations));
+          const localCcy = REGION_CURRENCY[regionId] || "EUR";
+          const regAr = arInvoices.filter((r) => (r.region || ERP_DEFAULT_REGION) === regionId && arQualifiesForMgmt(r, jobs, quotations));
+          const regAp = apBills.filter((b) => (b.region || ERP_DEFAULT_REGION) === regionId && apQualifiesForMgmt(b, jobs, quotations));
           const rev = regAr.reduce((s, r) => s + resolveArDisplayAmount(r, localCcy), 0);
           const cogs = regAp.reduce((s, b) => s + resolveApDisplayAmount(b, localCcy), 0);
           const profit = rev - cogs;
@@ -2013,7 +2032,7 @@
       }
 
       function emptyQuotation() {
-        return { quotation_no: "", client_id: "", company: "", quotation_date: "", valid_until: "", amount: "", currency: "USD", status: "Draft", description: "", job_no: "" };
+        return { quotation_no: "", client_id: "", company: "", quotation_date: "", valid_until: "", amount: "", currency: ERP_INTL_EU ? ERP_DEFAULT_CURRENCY : "USD", status: "Draft", description: "", job_no: "" };
       }
 
       function emptyVendor() { return { vendor_no: "", name: "", email: "", bank: "", swift_code: "", charge: "OUR", contact: "", phone: "", address: "" }; }
@@ -2039,7 +2058,7 @@
       }
 
       function emptyApForm() {
-        return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", payment_status: "Awaiting Payment", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "", payment_stage: "" };
+        return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: ERP_INTL_EU ? ERP_DEFAULT_CURRENCY : "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", payment_status: "Awaiting Payment", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "", payment_stage: "" };
       }
 
       function patchApFromPayeeMaster(payeeType, siId, companyName, vendorList, siList) {
@@ -2170,40 +2189,40 @@
       }
 
       const initialClients = [
-        { id: 1, region: "HK", customer_no: "CUST-0001", company: "Pacific Systems", gst_no: "GST-HK-1102", primary_contact: "Ken Wong", company_phone: "852-2333-1122", mobile_phone: "852-9456-3321", email: "ar@pacific.com", address: "18/F Pacific Tower, TST, Hong Kong", postal_code: "999077", account_dept_contact: "May Chan", payment_terms: "30 Days" },
-        { id: 2, region: "HK", customer_no: "CUST-0002", company: "Kingston Trading", gst_no: "GST-HK-2208", primary_contact: "Henry Lee", company_phone: "852-2550-0091", mobile_phone: "852-9877-1234", email: "finance@kingston.com", address: "Rm 1206, Mongkok Centre, Kowloon", postal_code: "999078", account_dept_contact: "Amy Lau", payment_terms: "45 Days" },
-        { id: 3, region: "TW", customer_no: "CUST-TW-001", company: "Taipei Tech Co.", gst_no: "TW-88321", primary_contact: "Lin Mei", company_phone: "886-2-5500-1122", mobile_phone: "886-912-334455", email: "ap@taipei-tech.tw", address: "Taipei Xinyi District", postal_code: "110", account_dept_contact: "Chen Wei", payment_terms: "30 Days" }
+        { id: 1, region: "UK", customer_no: "CUST-0001", company: "Thames Engineering Ltd", gst_no: "GB-VAT-1102", primary_contact: "James Wright", company_phone: "+44-20-7946-0958", mobile_phone: "+44-7700-900123", email: "ar@thames-eng.co.uk", address: "25 Canada Square, Canary Wharf, London", postal_code: "E14 5LQ", account_dept_contact: "Emma Clarke", payment_terms: "30 Days" },
+        { id: 2, region: "DE", customer_no: "CUST-0002", company: "Rhein Logistik GmbH", gst_no: "DE-VAT-2208", primary_contact: "Hans Mueller", company_phone: "+49-69-1234-5678", mobile_phone: "+49-170-1234567", email: "finance@rhein-logistik.de", address: "Mainzer Landstraße 50, Frankfurt", postal_code: "60325", account_dept_contact: "Anna Schmidt", payment_terms: "45 Days" },
+        { id: 3, region: "FR", customer_no: "CUST-0003", company: "Lyon Industrie SAS", gst_no: "FR-VAT-88321", primary_contact: "Pierre Dubois", company_phone: "+33-4-72-00-1122", mobile_phone: "+33-6-12-34-56-78", email: "ap@lyon-industrie.fr", address: "15 Rue de la République, Lyon", postal_code: "69002", account_dept_contact: "Marie Laurent", payment_terms: "30 Days" }
       ];
 
       const initialJobs = [
-        { id: 1, region: "HK", job_no: "JB-001", client_id: 1, company: "Pacific Systems", job_type: "Project", customer_po: "PO-7781", customer_po_amount: 150000, quotation_no: "QT-2026-001", amount: 150000, currency: "USD", status: "In Progress", description: "ERP rollout phase 1", remarks: "", start_date: "2026-04-01" },
-        { id: 2, region: "HK", job_no: "JB-002", client_id: 2, company: "Kingston Trading", job_type: "Service", customer_po: "PO-8801", customer_po_amount: 88000, quotation_no: "QT-2026-002", amount: 88000, currency: "HKD", status: "Completed", description: "Annual maintenance", remarks: "", start_date: "2026-05-15" },
-        { id: 3, region: "TW", job_no: "JB-TW-001", client_id: 3, company: "Taipei Tech Co.", job_type: "Project", customer_po: "PO-TW-100", customer_po_amount: 3200000, quotation_no: "QT-TW-001", amount: 3200000, currency: "TWD", status: "Open", description: "TW office setup", remarks: "", start_date: "2026-06-01" }
+        { id: 1, region: "UK", job_no: "JB-001", client_id: 1, company: "Thames Engineering Ltd", job_type: "Project", customer_po: "PO-7781", customer_po_amount: 120000, quotation_no: "QT-2026-001", amount: 120000, currency: "GBP", status: "In Progress", description: "ERP rollout phase 1", remarks: "", start_date: "2026-04-01" },
+        { id: 2, region: "DE", job_no: "JB-002", client_id: 2, company: "Rhein Logistik GmbH", job_type: "Service", customer_po: "PO-8801", customer_po_amount: 95000, quotation_no: "QT-2026-002", amount: 95000, currency: "EUR", status: "Completed", description: "Annual maintenance", remarks: "", start_date: "2026-05-15" },
+        { id: 3, region: "FR", job_no: "JB-003", client_id: 3, company: "Lyon Industrie SAS", job_type: "Project", customer_po: "PO-FR-100", customer_po_amount: 68000, quotation_no: "QT-2026-003", amount: 68000, currency: "EUR", status: "Open", description: "Warehouse automation", remarks: "", start_date: "2026-06-01" }
       ];
 
       const initialQuotations = [
-        { id: 1, region: "HK", quotation_no: "QT-2026-001", client_id: 1, company: "Pacific Systems", quotation_date: "2026-03-01", valid_until: "2026-03-31", amount: 150000, currency: "USD", status: "Accepted", description: "ERP rollout phase 1", job_no: "JB-001", job_id: 1 },
-        { id: 2, region: "HK", quotation_no: "QT-2026-002", client_id: 2, company: "Kingston Trading", quotation_date: "2026-04-20", valid_until: "2026-05-20", amount: 88000, currency: "HKD", status: "Accepted", description: "Annual maintenance contract", job_no: "JB-002", job_id: 2 },
-        { id: 3, region: "HK", quotation_no: "QT-2026-003", client_id: 1, company: "Pacific Systems", quotation_date: "2026-06-15", valid_until: "2026-07-15", amount: 45000, currency: "USD", status: "Sent", description: "Phase 2 optional modules", job_no: "", job_id: null }
+        { id: 1, region: "UK", quotation_no: "QT-2026-001", client_id: 1, company: "Thames Engineering Ltd", quotation_date: "2026-03-01", valid_until: "2026-03-31", amount: 120000, currency: "GBP", status: "Accepted", description: "ERP rollout phase 1", job_no: "JB-001", job_id: 1 },
+        { id: 2, region: "DE", quotation_no: "QT-2026-002", client_id: 2, company: "Rhein Logistik GmbH", quotation_date: "2026-04-20", valid_until: "2026-05-20", amount: 95000, currency: "EUR", status: "Accepted", description: "Annual maintenance contract", job_no: "JB-002", job_id: 2 },
+        { id: 3, region: "FR", quotation_no: "QT-2026-004", client_id: 3, company: "Lyon Industrie SAS", quotation_date: "2026-06-15", valid_until: "2026-07-15", amount: 42000, currency: "EUR", status: "Sent", description: "Optional modules", job_no: "", job_id: null }
       ];
 
       const initialVendors = [
-        { id: 1, region: "HK", vendor_no: "VEND-0001", name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", charge: "OUR", contact: "Tom Lee", phone: "852-2111-0000", address: "Unit 8, Kwun Tong Industrial Centre, Kowloon" },
-        { id: 2, region: "HK", vendor_no: "VEND-0002", name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", charge: "OUR", contact: "Sarah", phone: "852-2888-0000", address: "15/F, Causeway Bay Plaza, Hong Kong" }
+        { id: 1, region: "UK", vendor_no: "VEND-0001", name: "Delta Components Ltd", email: "ap@delta-components.co.uk", bank: "Barclays", swift_code: "BARCGB22", charge: "OUR", contact: "Tom Lee", phone: "+44-20-7111-0000", address: "Unit 8, Park Royal, London" },
+        { id: 2, region: "DE", vendor_no: "VEND-0002", name: "Bright Media GmbH", email: "billing@bright-media.de", bank: "Deutsche Bank", swift_code: "DEUTDEFF", charge: "OUR", contact: "Sarah Weber", phone: "+49-30-2888-0000", address: "Friedrichstraße 15, Berlin" }
       ];
 
       const initialSis = [
-        { id: 1, region: "HK", si_no: "SI-0001", name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", charge: "OUR", contact: "Mr. Cheung", phone: "852-3000-1122", address: "Workshop 3, Tai Po Industrial Estate" }
+        { id: 1, region: "NL", si_no: "SI-0001", name: "Ace Install BV", email: "invoice@ace-install.nl", bank: "ING", swift_code: "INGBNL2A", charge: "OUR", contact: "Mr. de Vries", phone: "+31-20-3000-1122", address: "Industrieweg 3, Rotterdam" }
       ];
 
       const initialAr = [
-        { id: 1, region: "HK", job_id: 1, job_no: "JB-001", customer: "Pacific Systems", customer_po: "PO-7781", job_completed: false, invoice_no: "INV-2026-1192", invoice_currency: "USD", invoice_amt: 11000, exchange_rate_locked: 7.8, base_amount_locked: 85800, base_amount: 85800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-05-01", due_date: "2026-06-05", payment_received_date: "", payment_status: "Overdue" },
-        { id: 2, region: "HK", job_id: 2, job_no: "JB-002", customer: "Kingston Trading", customer_po: "PO-8801", job_completed: true, invoice_no: "INV-2026-1204", invoice_currency: "HKD", invoice_amt: 54500, exchange_rate_locked: 1, base_amount_locked: 54500, base_amount: 54500, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-06-01", due_date: "2026-06-20", payment_received_date: "", payment_status: "Awaiting Payment" }
+        { id: 1, region: "UK", job_id: 1, job_no: "JB-001", customer: "Thames Engineering Ltd", customer_po: "PO-7781", job_completed: false, invoice_no: "INV-2026-1192", invoice_currency: "GBP", invoice_amt: 18500, exchange_rate_locked: 1, base_amount_locked: 18500, base_amount: 18500, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-05-01", due_date: "2026-06-05", payment_received_date: "", payment_status: "Overdue" },
+        { id: 2, region: "DE", job_id: 2, job_no: "JB-002", customer: "Rhein Logistik GmbH", customer_po: "PO-8801", job_completed: true, invoice_no: "INV-2026-1204", invoice_currency: "EUR", invoice_amt: 22800, exchange_rate_locked: 1, base_amount_locked: 22800, base_amount: 22800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-06-01", due_date: "2026-06-20", payment_received_date: "", payment_status: "Awaiting Payment" }
       ];
 
       const initialAp = [
-        { id: 1, region: "HK", job_id: 1, job_no: "JB-001", payee_type: "Vendor", si_id: null, company_name: "Delta Tech Vendor", invoice_no: "BILL-2026-2289", invoice_date: "2026-06-04", invoice_received_date: "2026-06-07", due_date: "2026-07-02", currency: "USD", amount: 6000, exchange_rate_locked: 7.8, base_amount_locked: 46800, base_amount: 46800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "2026-06-28", remarks: "Hardware for JB-001", bank: "HSBC", charge: "OUR", swift_code: "HSBCHKHHHKH", payment_advice_email: "ap@delta.com" },
-        { id: 2, region: "HK", job_id: 1, job_no: "JB-001", payee_type: "SI", si_id: 1, company_name: "Ace Engineering SI", invoice_no: "SI-INV-2026-001", invoice_date: "2026-06-10", invoice_received_date: "2026-06-12", due_date: "2026-07-10", currency: "HKD", amount: 28000, exchange_rate_locked: 1, base_amount_locked: 28000, base_amount: 28000, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "", remarks: "Subcontract install work", bank: "HSBC", charge: "OUR", swift_code: "HSBCHKHHHKH", payment_advice_email: "invoice@ace-eng.com" }
+        { id: 1, region: "UK", job_id: 1, job_no: "JB-001", payee_type: "Vendor", si_id: null, company_name: "Delta Components Ltd", invoice_no: "BILL-2026-2289", invoice_date: "2026-06-04", invoice_received_date: "2026-06-07", due_date: "2026-07-02", currency: "GBP", amount: 5200, exchange_rate_locked: 1, base_amount_locked: 5200, base_amount: 5200, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "2026-06-28", remarks: "Hardware for JB-001", bank: "Barclays", charge: "OUR", swift_code: "BARCGB22", payment_advice_email: "ap@delta-components.co.uk" },
+        { id: 2, region: "NL", job_id: 1, job_no: "JB-001", payee_type: "SI", si_id: 1, company_name: "Ace Install BV", invoice_no: "SI-INV-2026-001", invoice_date: "2026-06-10", invoice_received_date: "2026-06-12", due_date: "2026-07-10", currency: "EUR", amount: 8400, exchange_rate_locked: 1, base_amount_locked: 8400, base_amount: 8400, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "", remarks: "Subcontract install work", bank: "ING", charge: "OUR", swift_code: "INGBNL2A", payment_advice_email: "invoice@ace-install.nl" }
       ];
 
       const initialApprovals = [
@@ -2215,7 +2234,7 @@
       const initialUsers = [
         { id: 1, name: "Root Admin", email: "root@erp.local", password: "root", role: "root", is_active: true, permissions: fullPermissions(), allowed_regions: ["ALL"] },
         {
-          id: 2, name: "Finance User", email: "finance@erp.local", password: "demo", role: "user", is_active: true, allowed_regions: ["HK"],
+          id: 2, name: "Finance User", email: "finance@erp.local", password: "demo", role: "user", is_active: true, allowed_regions: ["UK"],
           permissions: {
             dashboard: { view: true, add: false, edit: false, delete: false, export: false, import: false },
             management_report: { view: true, add: false, edit: false, delete: false, export: false, import: false },
@@ -2562,7 +2581,11 @@
         function zoomIn(e) { e.stopPropagation(); setMapScale((s) => Math.min(4, +(s + 0.4).toFixed(2))); }
         function zoomOut(e) { e.stopPropagation(); setMapScale((s) => Math.max(1, +(s - 0.4).toFixed(2))); }
         function resetZoom(e) { e.stopPropagation(); setMapScale(1); setMapFocus(null); }
-        function focusAsia(e) { e.stopPropagation(); setMapScale(2.5); setMapFocus({ x: 720, y: 205 }); }
+        function focusMapRegion(e) {
+          e.stopPropagation();
+          if (ERP_INTL_EU) { setMapScale(1); setMapFocus(null); }
+          else { setMapScale(2.5); setMapFocus({ x: 720, y: 205 }); }
+        }
 
         function statForCountry(countryId) {
           return stats.find((s) => REGION_COUNTRY_IDS[s.regionId] === String(countryId));
@@ -2612,7 +2635,7 @@
                 <div className="absolute top-1 right-1 z-10 flex flex-wrap gap-0.5 justify-end">
                   <button type="button" onClick={zoomIn} title={t("dashMapZoomIn")} className="w-6 h-6 rounded bg-white/90 border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 shadow-sm">+</button>
                   <button type="button" onClick={zoomOut} title={t("dashMapZoomOut")} className="w-6 h-6 rounded bg-white/90 border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 shadow-sm">−</button>
-                  <button type="button" onClick={focusAsia} title={t("dashMapZoomAsia")} className="h-6 px-1.5 rounded bg-white/90 border border-slate-200 text-[10px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm">{t("dashMapZoomAsia")}</button>
+                  <button type="button" onClick={focusMapRegion} title={ERP_INTL_EU ? t("dashMapZoomEurope") : t("dashMapZoomAsia")} className="h-6 px-1.5 rounded bg-white/90 border border-slate-200 text-[10px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm">{ERP_INTL_EU ? t("dashMapZoomEurope") : t("dashMapZoomAsia")}</button>
                   <button type="button" onClick={resetZoom} title={t("dashMapZoomReset")} className="h-6 px-1.5 rounded bg-white/90 border border-slate-200 text-[10px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm">{t("dashMapZoomReset")}</button>
                 </div>
                 {world ? (
@@ -2742,8 +2765,8 @@
 
       function App() {
         const [page, setPage] = useState("dashboard");
-        const [lang, setLang] = useState(() => localStorage.getItem("erp_lang") || "zh_TW");
-        const [baseCurrency, setBaseCurrency] = useState("HKD");
+        const [lang, setLang] = useState(() => (ERP_INTL_EU ? "en" : (localStorage.getItem("erp_lang") || "en")));
+        const [baseCurrency, setBaseCurrency] = useState("EUR");
         const [customCurrency, setCustomCurrency] = useState("");
         const [clients, setClients] = useState(() => ensureRegionOnRecords(loadJson("erp_clients", initialClients)));
         const [jobs, setJobs] = useState(() => ensureJobsQuotations(ensureRegionOnRecords(loadJson("erp_jobs", initialJobs))));
@@ -2769,15 +2792,15 @@
         const [vendorsSearch, setVendorsSearch] = useState("");
         const [siSearch, setSiSearch] = useState("");
         const [mgmtClientFilter, setMgmtClientFilter] = useState("all");
-        const [mgmtGroupCurrency, setMgmtGroupCurrency] = useState("HKD");
-        const [mgmtCompareCurrency, setMgmtCompareCurrency] = useState("USD");
+        const [mgmtGroupCurrency, setMgmtGroupCurrency] = useState("EUR");
+        const [mgmtCompareCurrency, setMgmtCompareCurrency] = useState("GBP");
         const [arClientFilter, setArClientFilter] = useState("all");
         const [arSearch, setArSearch] = useState("");
         const [apClientFilter, setApClientFilter] = useState("all");
         const [apJobFilter, setApJobFilter] = useState("all");
         const [apSearch, setApSearch] = useState("");
         const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("erp_sidebar_collapsed") === "1");
-        const [activeRegion, setActiveRegion] = useState(() => localStorage.getItem("erp_active_region") || "HK");
+        const [activeRegion, setActiveRegion] = useState(() => localStorage.getItem("erp_active_region") || ERP_DEFAULT_REGION);
 
         const [clientModal, setClientModal] = useState(null);
         const [jobModal, setJobModal] = useState(null);
@@ -2792,12 +2815,12 @@
           return Array.isArray(loaded) ? loaded.map((u) => ({
             ...u,
             permissions: u.role === "root" ? fullPermissions() : normalizePermissions(u.permissions),
-            allowed_regions: u.role === "root" ? ["ALL"] : (u.allowed_regions && u.allowed_regions.length ? u.allowed_regions : ["HK"])
+            allowed_regions: u.role === "root" ? ["ALL"] : (u.allowed_regions && u.allowed_regions.length ? u.allowed_regions : [ERP_DEFAULT_REGION])
           })) : initialUsers;
         });
         const [auditLogs, setAuditLogs] = useState(() => loadJson("erp_audit_logs", initialAuditLogs));
         const [currentUserId, setCurrentUserId] = useState(() => Number(localStorage.getItem("erp_current_user_id") || 1));
-        const [worldTimeZone, setWorldTimeZone] = useState(() => localStorage.getItem("erp_world_timezone") || "Asia/Taipei");
+        const [worldTimeZone, setWorldTimeZone] = useState(() => localStorage.getItem("erp_world_timezone") || "Europe/London");
         const [worldClock, setWorldClock] = useState(() => new Date());
         const [settingsTab, setSettingsTab] = useState("general");
         const [companyName, setCompanyName] = useState(() => localStorage.getItem("erp_company_name") || "");
@@ -2903,13 +2926,13 @@
 
         function getUserRegions() {
           const u = getCurrentUser();
-          if (!u) return ["HK"];
+          if (!u) return [ERP_DEFAULT_REGION];
           if (u.role === "root" || (u.allowed_regions && u.allowed_regions.includes("ALL"))) return ERP_REGIONS.map((r) => r.id);
-          return u.allowed_regions && u.allowed_regions.length ? u.allowed_regions : ["HK"];
+          return u.allowed_regions && u.allowed_regions.length ? u.allowed_regions : [ERP_DEFAULT_REGION];
         }
 
         function recordInActiveRegion(rec) {
-          const rg = rec.region || "HK";
+          const rg = rec.region || ERP_DEFAULT_REGION;
           const allowed = getUserRegions();
           if (activeRegion === "ALL") {
             if (allowed.includes("ALL")) return true;
@@ -2921,7 +2944,7 @@
         function regionForNewRecord() {
           if (activeRegion !== "ALL") return activeRegion;
           const allowed = getUserRegions().filter((x) => x !== "ALL");
-          return allowed[0] || "HK";
+          return allowed[0] || ERP_DEFAULT_REGION;
         }
 
         function matchesSearch(row, q, keys) {
@@ -3007,8 +3030,9 @@
         }, [auditLogs, auditFilters]);
 
         function changeLang(next) {
-          setLang(next);
-          localStorage.setItem("erp_lang", next);
+          const L = ERP_INTL_EU ? "en" : next;
+          setLang(L);
+          localStorage.setItem("erp_lang", L);
         }
 
         useEffect(() => {
@@ -3065,7 +3089,7 @@
             mode: "add",
             data: {
               job_id: String(j.id), job_no: j.job_no, customer: j.company, customer_po: j.customer_po || "",
-              invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "",
+              invoice_no: "", invoice_currency: REGION_CURRENCY[j.region] || ERP_DEFAULT_CURRENCY, invoice_amt: "", exchange_rate: "", base_amount: "",
               override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment"
             }
           });
@@ -3130,8 +3154,8 @@
         const dashShowsAllPaid = scopedArCount + scopedApCount > 0 && arTotal === 0 && apTotal === 0;
         const recordsOutsideRegion = useMemo(() => {
           if (activeRegion === "ALL") return 0;
-          const arOther = arInvoices.filter((r) => (r.region || "HK") !== activeRegion).length;
-          const apOther = apBills.filter((b) => (b.region || "HK") !== activeRegion).length;
+          const arOther = arInvoices.filter((r) => (r.region || ERP_DEFAULT_REGION) !== activeRegion).length;
+          const apOther = apBills.filter((b) => (b.region || ERP_DEFAULT_REGION) !== activeRegion).length;
           return arOther + apOther;
         }, [arInvoices, apBills, activeRegion]);
         const dashRegionMismatch = activeRegion !== "ALL" && scopedArCount + scopedApCount === 0 && recordsOutsideRegion > 0;
@@ -3282,9 +3306,9 @@
           const allowed = getUserRegions();
           const ids = DATA_REGION_IDS.filter((id) => allowed.includes("ALL") || allowed.includes(id));
           return ids.map((regionId) => {
-            const rAr = arInvoices.filter((r) => (r.region || "HK") === regionId);
-            const rJobs = jobs.filter((j) => (j.region || "HK") === regionId);
-            const rAp = apBills.filter((b) => (b.region || "HK") === regionId);
+            const rAr = arInvoices.filter((r) => (r.region || ERP_DEFAULT_REGION) === regionId);
+            const rJobs = jobs.filter((j) => (j.region || ERP_DEFAULT_REGION) === regionId);
+            const rAp = apBills.filter((b) => (b.region || ERP_DEFAULT_REGION) === regionId);
             const arUnpaid = rAr.filter(isArUnpaid);
             const arTotal = arUnpaid.reduce((s, r) => s + resolveArDisplayAmount(r, regionListCurrency), 0);
             const apTotal = rAp.filter((b) => !isApPaid(b)).reduce((s, b) => s + resolveApDisplayAmount(b, regionListCurrency), 0);
@@ -3366,7 +3390,7 @@
           const allowed = getUserRegions();
           return lines.filter((l) => {
             if (l.year !== y) return false;
-            const rg = l.region || "HK";
+            const rg = l.region || ERP_DEFAULT_REGION;
             if (activeRegion === "ALL") return allowed.includes("ALL") || allowed.includes(rg);
             return rg === activeRegion;
           });
@@ -4008,14 +4032,14 @@
         }
 
         function emptyUserForm() {
-          return { name: "", email: "", password: "", role: "user", is_active: true, permissions: emptyPermissions(), allowed_regions: ["HK"] };
+          return { name: "", email: "", password: "", role: "user", is_active: true, permissions: emptyPermissions(), allowed_regions: [ERP_DEFAULT_REGION] };
         }
 
         function toggleUserRegion(regionId) {
           if (!userModal || userModal.data.role === "root") return;
           const cur = userModal.data.allowed_regions || [];
           const next = cur.includes(regionId) ? cur.filter((x) => x !== regionId) : [...cur, regionId];
-          setUserModal({ ...userModal, data: { ...userModal.data, allowed_regions: next.length ? next : ["HK"] } });
+          setUserModal({ ...userModal, data: { ...userModal.data, allowed_regions: next.length ? next : [ERP_DEFAULT_REGION] } });
         }
 
         function saveUser(e) {
@@ -4759,7 +4783,7 @@
               const job = jobs.find((j) => j.job_no.toLowerCase() === String(p.data.job_no || "").toLowerCase());
               const invAmt = Number(p.data.invoice_amt || 0);
               const invCur = p.data.invoice_currency || "USD";
-              const base = convertCurrency(invAmt, invCur, REGION_CURRENCY[job?.region || regionForNewRecord()] || "HKD");
+              const base = convertCurrency(invAmt, invCur, REGION_CURRENCY[job?.region || regionForNewRecord()] || "EUR");
               const payload = {
                 job_id: job ? job.id : null,
                 job_no: job ? job.job_no : p.data.job_no,
@@ -4768,7 +4792,7 @@
                 invoice_no: p.data.invoice_no,
                 invoice_currency: invCur,
                 invoice_amt: invAmt,
-                exchange_rate_locked: fxUsdMap[invCur] ? (fxUsdMap[REGION_CURRENCY[job?.region || "HK"] || "HKD"] / fxUsdMap[invCur]) : 1,
+                exchange_rate_locked: fxUsdMap[invCur] ? (fxUsdMap[REGION_CURRENCY[job?.region || ERP_DEFAULT_REGION] || "EUR"] / fxUsdMap[invCur]) : 1,
                 base_amount_locked: base,
                 base_amount: base,
                 lock_timestamp: nowIso(),
@@ -4801,7 +4825,7 @@
               const job = jobs.find((j) => j.job_no.toLowerCase() === String(p.data.job_no || "").toLowerCase());
               const amt = Number(p.data.amount || 0);
               const cur = p.data.currency || "USD";
-              const base = convertCurrency(amt, cur, REGION_CURRENCY[job?.region || regionForNewRecord()] || "HKD");
+              const base = convertCurrency(amt, cur, REGION_CURRENCY[job?.region || regionForNewRecord()] || "EUR");
               const payload = {
                 job_id: job ? job.id : null,
                 job_no: job ? job.job_no : p.data.job_no,
@@ -5464,7 +5488,7 @@
 
         return (
           <>
-            <div className="bg-amber-400 text-amber-950 text-center text-xs py-1.5 font-semibold tracking-wide">DEV Version · /demo · No Login Required</div>
+            <div className="bg-amber-400 text-amber-950 text-center text-xs py-1.5 font-semibold tracking-wide">International Demo · Europe / UK · No Login Required · English UI</div>
             <div className="erp-app-shell flex min-h-screen w-full">
             <aside className={(sidebarCollapsed ? "w-16" : "w-52") + " shrink-0 bg-slate-900 text-slate-100 py-3 transition-all duration-300 ease-in-out overflow-hidden " + (sidebarCollapsed ? "px-2" : "px-3")}>
               <div className={"mb-3 " + (sidebarCollapsed ? "flex flex-col items-center" : "px-0.5")}>
@@ -5566,10 +5590,9 @@
                     </select>
                   </div>
                   <select value={baseCurrency} onChange={(e) => setBaseCurrency(e.target.value)} className="h-9 w-[4.5rem] shrink-0 rounded-lg border border-slate-300 bg-white text-xs px-2">
-                    <option value="HKD">HKD</option><option value="USD">USD</option><option value="RMB">RMB</option>
-                    <option value="TWD">TWD</option><option value="SGD">SGD</option><option value="EUR">EUR</option><option value="OTHER">Other</option>
+                    {HEADER_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  {baseCurrency === "OTHER" && <Input placeholder="e.g. MYD" className="w-16 h-9 text-xs px-2 bg-white shrink-0" value={customCurrency} onChange={(e) => setCustomCurrency(e.target.value)} />}
+                  {baseCurrency === "OTHER" && <Input placeholder="e.g. CAD" className="w-16 h-9 text-xs px-2 bg-white shrink-0" value={customCurrency} onChange={(e) => setCustomCurrency(e.target.value)} />}
                   {(can("ar", "add") || can("ap", "add")) && <button type="button" onClick={() => setNewTxOpen(true)} className="h-9 shrink-0 px-3 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">{t("newTransaction")}</button>}
                 </div>
               </header>
@@ -6414,7 +6437,7 @@
                     <h3 className="font-semibold">{t("nav_ar")}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <ListImportExportBar module="ar" />
-                      {can("ar", "add") && <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment", payment_stage: "" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>}
+                      {can("ar", "add") && <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: ERP_DEFAULT_CURRENCY, invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment", payment_stage: "" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>}
                     </div>
                   </div>
                   <ListToolbar t={t} mode="ar" clients={scopedClients} jobs={scopedJobs} viewMode={arViewMode} setViewMode={setArViewMode} clientFilter={arClientFilter} setClientFilter={setArClientFilter} searchQ={arSearch} setSearchQ={setArSearch} lang={lang} />
@@ -6614,13 +6637,20 @@
                   {settingsTab === "general" && (
                     <div className="p-6 max-w-xl space-y-4">
                       <h3 className="font-semibold text-lg">{t("settingsTitle")}</h3>
-                      <Field label={t("language")}>
-                        <Select value={lang} onChange={(e) => changeLang(e.target.value)}>
-                          <option value="en">{t("langEn")}</option>
-                          <option value="zh_TW">{t("langZhTw")}</option>
-                        </Select>
-                      </Field>
-                      <p className="text-sm text-slate-500">{t("settingsLangHint")}</p>
+                      {!ERP_INTL_EU && (
+                        <>
+                          <Field label={t("language")}>
+                            <Select value={lang} onChange={(e) => changeLang(e.target.value)}>
+                              <option value="en">{t("langEn")}</option>
+                              <option value="zh_TW">{t("langZhTw")}</option>
+                            </Select>
+                          </Field>
+                          <p className="text-sm text-slate-500">{t("settingsLangHint")}</p>
+                        </>
+                      )}
+                      {ERP_INTL_EU && (
+                        <p className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">English interface (International Demo)</p>
+                      )}
                       <Field label={t("timezone")}>
                         <Select value={worldTimeZone} onChange={(e) => setWorldTimeZone(e.target.value)}>
                           {WORLD_TIMEZONES.map((tz) => <option key={tz.id} value={tz.id}>{i18nLang(lang) === "zh_TW" ? tz.labelZh : tz.labelEn}</option>)}
@@ -6719,7 +6749,7 @@
                                 <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + (u.role === "root" ? "bg-violet-100 text-violet-800" : "bg-slate-100")}>{u.role === "root" ? t("roleRoot") : t("roleUser")}</span></td>
                                 <td className="p-3">{u.is_active ? t("yes") : t("no")}</td>
                                 <td className="p-3">
-                                  <button type="button" onClick={() => setUserModal({ mode: "edit", id: u.id, data: { name: u.name, email: u.email, password: u.password || "", role: u.role, is_active: u.is_active, permissions: u.permissions || emptyPermissions(), allowed_regions: u.allowed_regions || ["HK"] } })} className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800">{t("edit")}</button>
+                                  <button type="button" onClick={() => setUserModal({ mode: "edit", id: u.id, data: { name: u.name, email: u.email, password: u.password || "", role: u.role, is_active: u.is_active, permissions: u.permissions || emptyPermissions(), allowed_regions: u.allowed_regions || [ERP_DEFAULT_REGION] } })} className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800">{t("edit")}</button>
                                 </td>
                               </tr>
                             ))}
@@ -6809,7 +6839,7 @@
                       <Field label={t("userEmail")}><Input required type="email" value={userModal.data.email} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, email: e.target.value } })} /></Field>
                       <Field label={t("userPassword")}><Input required type="password" value={userModal.data.password} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, password: e.target.value } })} /></Field>
                       <Field label={t("userRole")}>
-                        <Select value={userModal.data.role} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, role: e.target.value, permissions: e.target.value === "root" ? fullPermissions() : (userModal.data.permissions || emptyPermissions()), allowed_regions: e.target.value === "root" ? ["ALL"] : (userModal.data.allowed_regions || ["HK"]) } })}>
+                        <Select value={userModal.data.role} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, role: e.target.value, permissions: e.target.value === "root" ? fullPermissions() : (userModal.data.permissions || emptyPermissions()), allowed_regions: e.target.value === "root" ? ["ALL"] : (userModal.data.allowed_regions || [ERP_DEFAULT_REGION]) } })}>
                           <option value="user">{t("roleUser")}</option>
                           <option value="root">{t("roleRoot")}</option>
                         </Select>
@@ -6917,7 +6947,7 @@
               {newTxOpen && (
                 <Modal title={t("newTxTitle")} onClose={() => setNewTxOpen(false)}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {can("ar", "add") && <button onClick={() => { setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
+                    {can("ar", "add") && <button onClick={() => { setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: ERP_DEFAULT_CURRENCY, invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
                       <p className="font-semibold">{t("createArTitle")}</p><p className="text-xs text-slate-500">{t("createArDesc")}</p>
                     </button>}
                     {can("ap", "add") && <button onClick={() => { setApModal({ mode: "add", data: emptyApForm() }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
